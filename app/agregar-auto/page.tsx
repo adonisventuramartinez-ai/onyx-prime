@@ -12,7 +12,6 @@ interface PeliculaEncontrada {
   sinopsis: string;
   caratula: string;
   link_directo: string;
-  link?: string; // 👈 AGREGAMOS ESTA PROPIEDAD OPCIONAL
   fuente: string;
 }
 
@@ -47,11 +46,8 @@ export default function AgregarAutoPage() {
 
       if (data.pelicula) {
         setResultado(data.pelicula);
-        if (!data.pelicula.link_directo) {
-          setError("⚠️ No se encontró link directo. Se usará la página de detalle.");
-        }
       } else {
-        setError("No se encontró la película en Cinecalidad");
+        setError("No se encontró la película");
       }
     } catch (err) {
       setError("Error al buscar la película");
@@ -74,7 +70,7 @@ export default function AgregarAutoPage() {
           genero: resultado.genero,
           sinopsis: resultado.sinopsis,
           caratula: resultado.caratula,
-          link_directo: resultado.link_directo || resultado.link || "",
+          link_directo: resultado.link_directo || "",
           fuente: "cinecalidad",
         }),
       });
@@ -107,10 +103,9 @@ export default function AgregarAutoPage() {
           <span className="text-[#d4af37]"> Automático</span>
         </h1>
         <p className="text-gray-400 text-sm mb-6">
-          Escribe el nombre de la película y el sistema buscará: carátula, sinopsis, año y link directo sin anuncios
+          Escribe el nombre de la película y el sistema buscará: carátula, sinopsis, año y link directo
         </p>
 
-        {/* Buscador */}
         <div className="flex gap-3 mb-6">
           <input
             type="text"
@@ -144,15 +139,13 @@ export default function AgregarAutoPage() {
         {cargando && (
           <div className="text-center py-12">
             <Loader2 className="w-12 h-12 animate-spin text-[#d4af37] mx-auto mb-4" />
-            <p className="text-gray-400">Buscando en Cinecalidad...</p>
-            <p className="text-gray-500 text-sm mt-2">Obteniendo carátula, sinopsis y link directo</p>
+            <p className="text-gray-400">Buscando en TMDB y Cinecalidad...</p>
           </div>
         )}
 
         {resultado && !cargando && (
           <div className={`bg-gray-900/50 border rounded-2xl p-6 ${guardado ? 'border-green-500/50' : 'border-gray-700'}`}>
             <div className="flex flex-col sm:flex-row items-start gap-6">
-              {/* Carátula */}
               <div className="w-32 flex-shrink-0 mx-auto sm:mx-0">
                 {resultado.caratula ? (
                   <img
@@ -170,7 +163,6 @@ export default function AgregarAutoPage() {
                 )}
               </div>
 
-              {/* Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between">
                   <div>
@@ -179,7 +171,7 @@ export default function AgregarAutoPage() {
                       <span className="text-sm text-gray-400">{resultado.anio}</span>
                       <span className="text-sm text-gray-400">{resultado.genero}</span>
                       <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">
-                        🤖 Cinecalidad
+                        📽️ Cinecalidad
                       </span>
                     </div>
                   </div>
@@ -192,9 +184,8 @@ export default function AgregarAutoPage() {
 
                 <p className="text-gray-300 text-sm mt-3 line-clamp-3">{resultado.sinopsis}</p>
 
-                {/* Link directo sin anuncios */}
                 <div className="mt-4 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
-                  <p className="text-xs text-gray-500 mb-1">🎬 Link directo (sin anuncios):</p>
+                  <p className="text-xs text-gray-500 mb-1">🎬 Link directo:</p>
                   {resultado.link_directo ? (
                     <a
                       href={resultado.link_directo}
@@ -206,7 +197,7 @@ export default function AgregarAutoPage() {
                       <ExternalLink className="w-3 h-3 flex-shrink-0" />
                     </a>
                   ) : (
-                    <p className="text-yellow-400 text-sm">⚠️ No se encontró link directo. Se usará la página de detalle.</p>
+                    <p className="text-yellow-400 text-sm">⚠️ No se encontró link automático. Puedes agregarlo manualmente después.</p>
                   )}
                 </div>
 

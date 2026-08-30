@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
     const pelicula = {
       titulo: movie.title || nombre,
       anio: movie.release_date ? movie.release_date.split("-")[0] : "2024",
-      genero: "Desconocido",
+      genero: movie.genre_ids?.[0] ? "Desconocido" : "Desconocido",
       sinopsis: movie.overview || "Sin sinopsis disponible",
       caratula: movie.poster_path 
         ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` 
@@ -82,7 +82,6 @@ export async function GET(req: NextRequest) {
 // FUNCIÓN: Extraer link de Cinecalidad
 // ========================================
 function extraerLinkDeHTML(html: string): string | null {
-  // Buscar enlaces de películas
   const regex = /<a[^>]*href="([^"]*)"[^>]*>/gi;
   let match;
   while ((match = regex.exec(html)) !== null) {

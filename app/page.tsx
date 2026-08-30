@@ -226,4 +226,3 @@ export default function Home() {
     </div>
   );
 }
-Fix: Renombrar icono Home a HomeIcon en página pública

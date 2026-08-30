@@ -25,7 +25,8 @@ export default function Home() {
       .then((data) => {
         setPeliculas(data);
         setCargando(false);
-      });
+      })
+      .catch(() => setCargando(false));
   }, []);
 
   const filtradas = peliculas.filter((p) =>
@@ -48,7 +49,7 @@ export default function Home() {
                 placeholder="Buscar..."
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
-                className="bg-white/10 text-sm px-4 py-2 pl-10 rounded-full border border-white/10 focus:border-[#d4af37] focus:outline-none transition-colors w-40 focus:w-56"
+                className="bg-white/10 text-sm px-4 py-2 pl-10 rounded-full border border-white/10 focus:border-[#d4af37] focus:outline-none transition-colors w-40 focus:w-56 text-white"
               />
               <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
             </div>
@@ -64,7 +65,6 @@ export default function Home() {
 
       {/* Contenido */}
       <main className="pt-20 px-4 max-w-7xl mx-auto">
-        {/* Scraper rápido */}
         <div className="mb-6 flex gap-3">
           <Link
             href="/scrapear"
@@ -74,7 +74,6 @@ export default function Home() {
           </Link>
         </div>
 
-        {/* Grid de películas */}
         {cargando ? (
           <div className="flex justify-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d4af37]" />

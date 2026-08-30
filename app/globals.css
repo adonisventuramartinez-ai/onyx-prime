@@ -1,19 +1,22 @@
-import './globals.css'
-import { Inter } from 'next/font/google'
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-const inter = Inter({ subsets: ['latin'] })
-
-export const metadata = {
-  title: 'ONYX PRIME - Tu cine premium',
-  description: 'Las mejores películas sin anuncios',
-}
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="es">
-      <body className={`${inter.className} bg-black text-white min-h-screen`}>
-        {children}
-      </body>
-    </html>
-  )
+@layer base {
+  body {
+    @apply bg-black text-white antialiased;
+  }
+  
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #121212;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #d4af37;
+    border-radius: 10px;
+  }
 }

@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import axios from "axios";
-import * as cheerio from "cheerio";
 
 export async function GET(req: NextRequest) {
   const nombre = req.nextUrl.searchParams.get("nombre");
@@ -10,74 +8,78 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Buscar en Cinecalidad
+    // Construir URL de búsqueda en Cinecalidad
     const searchUrl = `https://cinecalidad.gg/?s=${encodeURIComponent(nombre)}`;
-    const response = await axios.get(searchUrl, {
+    
+    const response = await fetch(searchUrl, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "es-ES,es;q=0.8,en-US;q=0.5,en;q=0.3",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
       },
-      timeout: 10000,
     });
 
-    const $ = cheerio.load(response.data);
-
-    // Buscar el primer resultado
-    const primeraPelicula = $(".movie-item").first();
-
-    if (!primeraPelicula.length) {
-      return NextResponse.json({ error: "No se encontró la película" }, { status: 404 });
+    if (!response.ok) {
+      return NextResponse.json({ error: "No se pudo acceder a Cinecalidad" }, { status: 404 });
     }
 
-    const titulo = primeraPelicula.find(".movie-title").text().trim();
-    const anio = primeraPelicula.find(".movie-year").text().trim();
-    const genero = primeraPelicula.find(".movie-genre").text().trim();
-    const sinopsis = primeraPelicula.find(".movie-synopsis").text().trim();
-    const caratula = primeraPelicula.find("img").attr("src") || "";
-    const link = primeraPelicula.find("a").attr("href") || "";
+    const html = await response.text();
+    
+    // Buscar resultados con expresiones regulares (más robusto que Cheerio)
+    const regexResultados = /<article[^>]*class="[^"]*movie-item[^"]*"[^>]*>([\s\S]*?)<\/article>/gi;
+    const resultados = [];
+    let match;
 
-    if (!titulo) {
-      return NextResponse.json({ error: "No se encontró la película" }, { status: 404 });
-    }
+    while ((match = regexResultados.exec(html)) !== null) {
+      const item = match[1];
+      
+      // Extraer título
+      const tituloMatch = item.match(/<h2[^>]*>([^<]*)<\/h2>/i) || item.match(/<span[^>]*class="[^"]*title[^"]*"[^>]*>([^<]*)<\/span>/i);
+      const titulo = tituloMatch ? tituloMatch[1].trim() : "";
+      
+      // Extraer año
+      const anioMatch = item.match(/(\d{4})/);
+      const anio = anioMatch ? anioMatch[1] : "";
+      
+      // Extraer carátula
+      const imagenMatch = item.match(/<img[^>]*src="([^"]*)"[^>]*>/i);
+      const caratula = imagenMatch ? imagenMatch[1] : "";
+      
+      // Extraer link
+      const linkMatch = item.match(/<a[^>]*href="([^"]*)"[^>]*>/i);
+      const link = linkMatch ? linkMatch[1] : "";
 
-    // Link directo (sin anuncios) - intentar obtener el link de descarga directa
-    let linkDirecto = "";
-    if (link) {
-      try {
-        const detailRes = await axios.get(`https://cinecalidad.gg${link}`, {
-          headers: {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-          },
-          timeout: 10000,
+      // Extraer sinopsis
+      const sinopsisMatch = item.match(/<p[^>]*class="[^"]*synopsis[^"]*"[^>]*>([^<]*)<\/p>/i) ||
+                            item.match(/<div[^>]*class="[^"]*synopsis[^"]*"[^>]*>([^<]*)<\/div>/i);
+      const sinopsis = sinopsisMatch ? sinopsisMatch[1].trim() : "";
+
+      // Extraer género
+      const generoMatch = item.match(/<span[^>]*class="[^"]*genre[^"]*"[^>]*>([^<]*)<\/span>/i);
+      const genero = generoMatch ? generoMatch[1].trim() : "";
+
+      if (titulo) {
+        resultados.push({
+          titulo,
+          anio: anio || "2024",
+          genero: genero || "Desconocido",
+          sinopsis: sinopsis || "Sin sinopsis disponible",
+          caratula: caratula.startsWith("http") ? caratula : `https://cinecalidad.gg${caratula}`,
+          link_directo: link.startsWith("http") ? link : `https://cinecalidad.gg${link}`,
+          fuente: "cinecalidad",
         });
-        const detail$ = cheerio.load(detailRes.data);
-
-        // Buscar link de descarga directa (sin anuncios)
-        const downloadLink = detail$(".download-link a, .btn-download a, .player a").first();
-        if (downloadLink.length) {
-          linkDirecto = downloadLink.attr("href") || "";
-        }
-
-        // Si no hay link directo, usar el link de la página de detalle
-        if (!linkDirecto) {
-          linkDirecto = `https://cinecalidad.gg${link}`;
-        }
-      } catch (err) {
-        // Si falla, usar el link de la página
-        linkDirecto = `https://cinecalidad.gg${link}`;
       }
     }
 
-    const pelicula = {
-      titulo,
-      anio,
-      genero,
-      sinopsis,
-      caratula,
-      link_directo: linkDirecto,
-      fuente: "cinecalidad",
-    };
+    if (resultados.length === 0) {
+      return NextResponse.json({ error: "No se encontró la película" }, { status: 404 });
+    }
 
-    return NextResponse.json({ pelicula });
+    // Devolver el primer resultado
+    return NextResponse.json({ pelicula: resultados[0] });
 
   } catch (error) {
     console.error("Error al buscar:", error);

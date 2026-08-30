@@ -46,7 +46,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-black text-white pb-20">
-      {/* Navbar superior */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/90 to-transparent backdrop-blur-sm px-4 py-4">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <h1 className="text-2xl font-bold">
@@ -71,7 +70,6 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Categorías horizontal */}
       <div className="fixed top-16 left-0 right-0 z-40 bg-black/80 backdrop-blur-sm border-b border-gray-800 px-4 py-3 overflow-x-auto">
         <div className="flex gap-6 max-w-7xl mx-auto">
           {["Inicio", "Telenovela", "Películas", "Series"].map((cat) => (
@@ -88,9 +86,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Contenido principal */}
       <main className="pt-36 px-4 max-w-7xl mx-auto">
-        {/* Hero - Película destacada */}
         {destacada && (
           <section className="relative rounded-2xl overflow-hidden mb-8 h-[320px] bg-gradient-to-br from-gray-900 to-black">
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
@@ -112,7 +108,6 @@ export default function Home() {
           </section>
         )}
 
-        {/* Sección: Últimamente nuevo */}
         <section>
           <h3 className="text-lg font-semibold mb-4">📺 Últimamente nuevo</h3>
           {cargando ? (
@@ -163,7 +158,6 @@ export default function Home() {
           )}
         </section>
 
-        {/* Sección adicional: AGOSTO 27 */}
         {!cargando && filtradas.length > 3 && (
           <section className="mt-8">
             <h3 className="text-lg font-semibold mb-4">📅 AGOSTO 27</h3>
@@ -198,7 +192,6 @@ export default function Home() {
         )}
       </main>
 
-      {/* Navegación inferior */}
       <nav className="fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-sm border-t border-gray-800 px-4 py-2">
         <div className="flex justify-around max-w-md mx-auto">
           <button className="flex flex-col items-center gap-0.5 text-white">

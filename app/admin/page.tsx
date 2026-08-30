@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Plus, Film, Trash2, Eye, Sparkles, ArrowLeft } from "lucide-react";
+import { Plus, Film, Trash2, Eye, Sparkles, User, LogOut } from "lucide-react";
 
 interface Pelicula {
   id: number;
@@ -16,13 +15,11 @@ interface Pelicula {
 }
 
 export default function AdminPage() {
-  const router = useRouter();
   const [peliculas, setPeliculas] = useState<Pelicula[]>([]);
   const [cargando, setCargando] = useState(true);
   const [password, setPassword] = useState("");
   const [autenticado, setAutenticado] = useState(false);
 
-  // Login simple (puedes cambiarlo por un sistema más seguro)
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (password === "admin123") {
@@ -104,12 +101,11 @@ export default function AdminPage() {
               onClick={() => setAutenticado(false)}
               className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg text-sm transition-colors"
             >
-              Salir
+              <LogOut className="w-4 h-4" /> Salir
             </button>
           </div>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-4">
             <p className="text-gray-400 text-sm">Total Películas</p>
@@ -129,7 +125,6 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Lista de películas */}
         {cargando ? (
           <div className="flex justify-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d4af37]" />

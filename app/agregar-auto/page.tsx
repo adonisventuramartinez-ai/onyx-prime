@@ -12,6 +12,7 @@ interface PeliculaEncontrada {
   sinopsis: string;
   caratula: string;
   link_directo: string;
+  link?: string; // 👈 AGREGAMOS ESTA PROPIEDAD OPCIONAL
   fuente: string;
 }
 
@@ -46,7 +47,6 @@ export default function AgregarAutoPage() {
 
       if (data.pelicula) {
         setResultado(data.pelicula);
-        // Si no tiene link directo, mostrar advertencia
         if (!data.pelicula.link_directo) {
           setError("⚠️ No se encontró link directo. Se usará la página de detalle.");
         }

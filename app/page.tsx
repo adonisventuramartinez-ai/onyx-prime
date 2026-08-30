@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, Search, Home as HomeIcon, Film, List, Tv, User } from "lucide-react";
+import { Search, Home, Film, List, Tv, User, Shield } from "lucide-react";
 
 interface Pelicula {
   id: number;
@@ -54,10 +54,10 @@ export default function Home() {
               <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
             </div>
             <Link
-              href="/agregar"
-              className="flex items-center gap-1 bg-[#d4af37] hover:bg-[#c19b2e] text-black px-4 py-2 rounded-full text-sm font-semibold transition-colors"
+              href="/admin"
+              className="flex items-center gap-1 bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-full text-xs transition-colors"
             >
-              <Plus className="w-4 h-4" /> Agregar
+              <Shield className="w-4 h-4" /> Admin
             </Link>
           </div>
         </div>
@@ -81,10 +81,7 @@ export default function Home() {
         ) : filtradas.length === 0 ? (
           <div className="text-center py-20 text-gray-500">
             <Film className="w-16 h-16 mx-auto mb-4 opacity-20" />
-            <p>No hay películas aún</p>
-            <Link href="/agregar" className="text-[#d4af37] hover:underline text-sm">
-              Agrega tu primera película
-            </Link>
+            <p>No hay películas en el catálogo</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -125,12 +122,12 @@ export default function Home() {
       <nav className="fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-sm border-t border-gray-800 px-4 py-2">
         <div className="flex justify-around max-w-md mx-auto">
           <Link href="/" className="flex flex-col items-center gap-0.5 text-white">
-            <HomeIcon className="w-5 h-5" />
+            <Home className="w-5 h-5" />
             <span className="text-[10px]">Inicio</span>
           </Link>
-          <Link href="/agregar" className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-white transition-colors">
-            <Plus className="w-5 h-5" />
-            <span className="text-[10px]">Agregar</span>
+          <Link href="/admin" className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-white transition-colors">
+            <Shield className="w-5 h-5" />
+            <span className="text-[10px]">Admin</span>
           </Link>
           <Link href="/scrapear" className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-white transition-colors">
             <Tv className="w-5 h-5" />

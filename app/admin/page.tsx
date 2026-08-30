@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, Film, Trash2, Edit, Eye } from "lucide-react";
+import { Plus, Film, Trash2, Eye, Sparkles } from "lucide-react";
 
 interface Pelicula {
   id: number;
@@ -27,11 +27,21 @@ export default function AdminPage() {
       });
   }, []);
 
+  const eliminarPelicula = async (id: number) => {
+    if (!confirm("¿Eliminar esta película?")) return;
+    try {
+      await fetch(`/api/peliculas/${id}`, { method: "DELETE" });
+      setPeliculas(peliculas.filter(p => p.id !== id));
+    } catch (error) {
+      console.error("Error al eliminar");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black text-white p-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-wrap justify-between items-center gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold">
               <span className="text-white">ONYX</span>
@@ -40,12 +50,20 @@ export default function AdminPage() {
             </h1>
             <p className="text-gray-400 text-sm">Gestiona tu catálogo de películas</p>
           </div>
-          <Link
-            href="/agregar"
-            className="flex items-center gap-2 bg-[#d4af37] hover:bg-[#c19b2e] text-black px-4 py-2 rounded-lg font-semibold transition-colors"
-          >
-            <Plus className="w-5 h-5" /> Agregar Película
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/agregar-auto"
+              className="flex items-center gap-2 bg-[#d4af37]/20 hover:bg-[#d4af37]/30 text-[#d4af37] px-4 py-2 rounded-lg font-semibold transition-colors border border-[#d4af37]/30"
+            >
+              <Sparkles className="w-5 h-5" /> Buscar Automático
+            </Link>
+            <Link
+              href="/agregar"
+              className="flex items-center gap-2 bg-[#d4af37] hover:bg-[#c19b2e] text-black px-4 py-2 rounded-lg font-semibold transition-colors"
+            >
+              <Plus className="w-5 h-5" /> Agregar Manual
+            </Link>
+          </div>
         </div>
 
         {/* Stats */}
@@ -77,8 +95,8 @@ export default function AdminPage() {
           <div className="text-center py-20 text-gray-500">
             <Film className="w-16 h-16 mx-auto mb-4 opacity-20" />
             <p>No hay películas en el catálogo</p>
-            <Link href="/agregar" className="text-[#d4af37] hover:underline text-sm">
-              Agrega tu primera película
+            <Link href="/agregar-auto" className="text-[#d4af37] hover:underline text-sm">
+              Busca una película automáticamente
             </Link>
           </div>
         ) : (
@@ -107,7 +125,7 @@ export default function AdminPage() {
                           ? "bg-blue-500/20 text-blue-400" 
                           : "bg-green-500/20 text-green-400"
                       }`}>
-                        {pelicula.fuente}
+                        {pelicula.fuente === "cinecalidad" ? "🤖 Auto" : "✍️ Manual"}
                       </span>
                     </td>
                     <td className="py-3 pr-4">
@@ -118,7 +136,10 @@ export default function AdminPage() {
                         >
                           <Eye className="w-4 h-4" />
                         </Link>
-                        <button className="p-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded transition-colors">
+                        <button
+                          onClick={() => eliminarPelicula(pelicula.id)}
+                          className="p-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded transition-colors"
+                        >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>

@@ -46,8 +46,11 @@ export default function AgregarAutoPage() {
 
       if (data.pelicula) {
         setResultado(data.pelicula);
+        if (!data.pelicula.link_directo) {
+          setError("⚠️ No se encontró link directo. Se usará la página de detalle.");
+        }
       } else {
-        setError("No se encontró la película");
+        setError("No se encontró la película en Cinecalidad");
       }
     } catch (err) {
       setError("Error al buscar la película");
@@ -103,13 +106,13 @@ export default function AgregarAutoPage() {
           <span className="text-[#d4af37]"> Automático</span>
         </h1>
         <p className="text-gray-400 text-sm mb-6">
-          Escribe el nombre de la película y el sistema buscará: carátula, sinopsis, año y link directo
+          Escribe el nombre de la película y el sistema buscará en Cinecalidad: carátula, sinopsis, año y link directo sin anuncios
         </p>
 
         <div className="flex gap-3 mb-6">
           <input
             type="text"
-            placeholder="Ej: Dune: Parte Dos, Oppenheimer, Barbie..."
+            placeholder="Ej: Dune, Oppenheimer, Barbie..."
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && buscarPelicula()}
@@ -139,7 +142,8 @@ export default function AgregarAutoPage() {
         {cargando && (
           <div className="text-center py-12">
             <Loader2 className="w-12 h-12 animate-spin text-[#d4af37] mx-auto mb-4" />
-            <p className="text-gray-400">Buscando en TMDB y Cinecalidad...</p>
+            <p className="text-gray-400">Buscando en Cinecalidad...</p>
+            <p className="text-gray-500 text-sm mt-2">Obteniendo carátula, sinopsis y link directo</p>
           </div>
         )}
 
@@ -185,7 +189,7 @@ export default function AgregarAutoPage() {
                 <p className="text-gray-300 text-sm mt-3 line-clamp-3">{resultado.sinopsis}</p>
 
                 <div className="mt-4 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
-                  <p className="text-xs text-gray-500 mb-1">🎬 Link directo:</p>
+                  <p className="text-xs text-gray-500 mb-1">🎬 Link directo sin anuncios:</p>
                   {resultado.link_directo ? (
                     <a
                       href={resultado.link_directo}
@@ -197,7 +201,7 @@ export default function AgregarAutoPage() {
                       <ExternalLink className="w-3 h-3 flex-shrink-0" />
                     </a>
                   ) : (
-                    <p className="text-yellow-400 text-sm">⚠️ No se encontró link automático. Puedes agregarlo manualmente después.</p>
+                    <p className="text-yellow-400 text-sm">⚠️ No se encontró link directo. Se usará la página de detalle.</p>
                   )}
                 </div>
 

@@ -8,31 +8,67 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const searchUrl = `https://cinecalidad.gg/?s=${encodeURIComponent(nombre)}`;
+    // ========================================
+    // PASO 1: OBTENER DATOS DE TMDB
+    // ========================================
+    const TMDB_API_KEY = process.env.TMDB_API_KEY || "528f5aaebfb0c656e0974c07c3cba128";
     
-    const response = await fetch(searchUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Accept": "text/html,application/xhtml+xml",
-      },
-    });
-
-    if (!response.ok) {
-      return NextResponse.json({ error: "No se pudo acceder a Cinecalidad" }, { status: 404 });
-    }
-
-    const html = await response.text();
+    const tmdbRes = await fetch(
+      `https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(nombre)}&language=es-ES`
+    );
     
-    const pelicula = extraerPeliculaDeHTML(html, nombre);
-
-    if (!pelicula) {
-      return NextResponse.json({ error: "No se encontró la película" }, { status: 404 });
+    if (!tmdbRes.ok) {
+      return NextResponse.json({ error: "Error al buscar en TMDB" }, { status: 500 });
     }
 
-    if (pelicula.link) {
-      const linkDirecto = await obtenerLinkDirecto(pelicula.link);
-      pelicula.link_directo = linkDirecto || pelicula.link;
+    const tmdbData = await tmdbRes.json();
+
+    if (!tmdbData.results || tmdbData.results.length === 0) {
+      return NextResponse.json({ error: "No se encontró la película en TMDB" }, { status: 404 });
     }
+
+    const movie = tmdbData.results[0];
+
+    // ========================================
+    // PASO 2: BUSCAR EN CINECALIDAD (URL CORRECTA)
+    // ========================================
+    let linkDirecto = "";
+    const searchUrl = `https://www.cinecalidad.am/?s=${encodeURIComponent(nombre)}`;
+    
+    try {
+      const response = await fetch(searchUrl, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "Accept": "text/html,application/xhtml+xml",
+          "Referer": "https://www.cinecalidad.am/",
+        },
+      });
+
+      if (response.ok) {
+        const html = await response.text();
+        const linkEncontrado = extraerLinkDeHTML(html);
+        if (linkEncontrado) {
+          linkDirecto = linkEncontrado;
+        }
+      }
+    } catch (error) {
+      console.log("Error al buscar en Cinecalidad:", error);
+    }
+
+    // ========================================
+    // PASO 3: CONSTRUIR RESULTADO
+    // ========================================
+    const pelicula = {
+      titulo: movie.title || nombre,
+      anio: movie.release_date ? movie.release_date.split("-")[0] : "2024",
+      genero: "Desconocido",
+      sinopsis: movie.overview || "Sin sinopsis disponible",
+      caratula: movie.poster_path 
+        ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` 
+        : "",
+      link_directo: linkDirecto || `https://www.cinecalidad.am/${movie.title.toLowerCase().replace(/ /g, "-")}`,
+      fuente: "cinecalidad",
+    };
 
     return NextResponse.json({ pelicula });
 
@@ -42,80 +78,27 @@ export async function GET(req: NextRequest) {
   }
 }
 
-function extraerPeliculaDeHTML(html: string, nombreBuscado: string) {
-  const regexResultado = /<article[^>]*class="[^"]*movie-item[^"]*"[^>]*>([\s\S]*?)<\/article>/i;
-  const match = regexResultado.exec(html);
-  
-  if (!match) return null;
-
-  const item = match[1];
-
-  const tituloMatch = item.match(/<h[2-3][^>]*>([^<]*)<\/h[2-3]>/i) || 
-                      item.match(/<span[^>]*class="[^"]*title[^"]*"[^>]*>([^<]*)<\/span>/i);
-  const titulo = tituloMatch ? tituloMatch[1].trim() : nombreBuscado;
-
-  const anioMatch = item.match(/\b(19\d{2}|20\d{2})\b/);
-  const anio = anioMatch ? anioMatch[1] : "2024";
-
-  const imgMatch = item.match(/<img[^>]*src="([^"]*)"[^>]*>/i);
-  const caratula = imgMatch ? imgMatch[1] : "";
-
-  const linkMatch = item.match(/<a[^>]*href="([^"]*)"[^>]*>/i);
-  const link = linkMatch ? linkMatch[1] : "";
-
-  const sinopsisMatch = item.match(/<p[^>]*class="[^"]*synopsis[^"]*"[^>]*>([^<]*)<\/p>/i) ||
-                        item.match(/<div[^>]*class="[^"]*synopsis[^"]*"[^>]*>([^<]*)<\/div>/i);
-  const sinopsis = sinopsisMatch ? sinopsisMatch[1].trim() : "Sin sinopsis disponible";
-
-  const generoMatch = item.match(/<span[^>]*class="[^"]*genre[^"]*"[^>]*>([^<]*)<\/span>/i);
-  const genero = generoMatch ? generoMatch[1].trim() : "Desconocido";
-
-  return {
-    titulo,
-    anio,
-    genero,
-    sinopsis,
-    caratula: caratula.startsWith("http") ? caratula : `https://cinecalidad.gg${caratula}`,
-    link: link.startsWith("http") ? link : `https://cinecalidad.gg${link}`,
-    link_directo: "",
-    fuente: "cinecalidad",
-  };
-}
-
-async function obtenerLinkDirecto(urlPagina: string): Promise<string | null> {
-  try {
-    const response = await fetch(urlPagina, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-      },
-    });
-
-    if (!response.ok) return null;
-
-    const html = await response.text();
-
-    const patrones = [
-      /<a[^>]*href="(https?:\/\/[^"]*\.(mp4|mkv|avi|mov|webm)[^"]*)"[^>]*>/gi,
-      /<iframe[^>]*src="(https?:\/\/[^"]*)"[^>]*>/gi,
-      /<a[^>]*class="[^"]*download[^"]*"[^>]*href="([^"]*)"[^>]*>/gi,
-      /<a[^>]*href="(https?:\/\/(mega\.nz|mediafire\.com|drive\.google\.com)[^"]*)"[^>]*>/gi,
-    ];
-
-    for (const patron of patrones) {
-      const regex = new RegExp(patron);
-      let match;
-      while ((match = regex.exec(html)) !== null) {
-        const link = match[1];
-        if (link && !link.includes("anuncio") && !link.includes("ad")) {
-          return link;
-        }
-      }
+// ========================================
+// FUNCIÓN: Extraer link de Cinecalidad
+// ========================================
+function extraerLinkDeHTML(html: string): string | null {
+  // Buscar enlaces de películas
+  const regex = /<a[^>]*href="([^"]*)"[^>]*>/gi;
+  let match;
+  while ((match = regex.exec(html)) !== null) {
+    const link = match[1];
+    if (link && 
+        !link.includes("anuncio") && 
+        !link.includes("ad") &&
+        !link.includes("google") &&
+        !link.includes("facebook") &&
+        !link.includes("twitter") &&
+        !link.includes("instagram") &&
+        !link.includes("#") &&
+        !link.includes("javascript") &&
+        link.includes("cinecalidad")) {
+      return link.startsWith("http") ? link : `https://www.cinecalidad.am${link}`;
     }
-
-    return urlPagina;
-
-  } catch (error) {
-    console.error("Error obteniendo link directo:", error);
-    return null;
   }
+  return null;
 }

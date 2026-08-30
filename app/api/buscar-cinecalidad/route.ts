@@ -8,9 +8,6 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // ========================================
-    // PASO 1: Buscar en Cinecalidad
-    // ========================================
     const searchUrl = `https://cinecalidad.gg/?s=${encodeURIComponent(nombre)}`;
     
     const response = await fetch(searchUrl, {
@@ -26,18 +23,12 @@ export async function GET(req: NextRequest) {
 
     const html = await response.text();
     
-    // ========================================
-    // PASO 2: Extraer datos de la película
-    // ========================================
     const pelicula = extraerPeliculaDeHTML(html, nombre);
 
     if (!pelicula) {
       return NextResponse.json({ error: "No se encontró la película" }, { status: 404 });
     }
 
-    // ========================================
-    // PASO 3: Obtener link directo sin anuncios
-    // ========================================
     if (pelicula.link) {
       const linkDirecto = await obtenerLinkDirecto(pelicula.link);
       pelicula.link_directo = linkDirecto || pelicula.link;
@@ -51,11 +42,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// ========================================
-// FUNCIÓN: Extraer película del HTML
-// ========================================
 function extraerPeliculaDeHTML(html: string, nombreBuscado: string) {
-  // Buscar el primer resultado de la búsqueda
   const regexResultado = /<article[^>]*class="[^"]*movie-item[^"]*"[^>]*>([\s\S]*?)<\/article>/i;
   const match = regexResultado.exec(html);
   
@@ -63,29 +50,23 @@ function extraerPeliculaDeHTML(html: string, nombreBuscado: string) {
 
   const item = match[1];
 
-  // Extraer título
   const tituloMatch = item.match(/<h[2-3][^>]*>([^<]*)<\/h[2-3]>/i) || 
                       item.match(/<span[^>]*class="[^"]*title[^"]*"[^>]*>([^<]*)<\/span>/i);
   const titulo = tituloMatch ? tituloMatch[1].trim() : nombreBuscado;
 
-  // Extraer año
   const anioMatch = item.match(/\b(19\d{2}|20\d{2})\b/);
   const anio = anioMatch ? anioMatch[1] : "2024";
 
-  // Extraer carátula
   const imgMatch = item.match(/<img[^>]*src="([^"]*)"[^>]*>/i);
   const caratula = imgMatch ? imgMatch[1] : "";
 
-  // Extraer link de la página de la película
   const linkMatch = item.match(/<a[^>]*href="([^"]*)"[^>]*>/i);
   const link = linkMatch ? linkMatch[1] : "";
 
-  // Extraer sinopsis
   const sinopsisMatch = item.match(/<p[^>]*class="[^"]*synopsis[^"]*"[^>]*>([^<]*)<\/p>/i) ||
                         item.match(/<div[^>]*class="[^"]*synopsis[^"]*"[^>]*>([^<]*)<\/div>/i);
   const sinopsis = sinopsisMatch ? sinopsisMatch[1].trim() : "Sin sinopsis disponible";
 
-  // Extraer género
   const generoMatch = item.match(/<span[^>]*class="[^"]*genre[^"]*"[^>]*>([^<]*)<\/span>/i);
   const genero = generoMatch ? generoMatch[1].trim() : "Desconocido";
 
@@ -101,9 +82,6 @@ function extraerPeliculaDeHTML(html: string, nombreBuscado: string) {
   };
 }
 
-// ========================================
-// FUNCIÓN: Obtener link directo sin anuncios
-// ========================================
 async function obtenerLinkDirecto(urlPagina: string): Promise<string | null> {
   try {
     const response = await fetch(urlPagina, {
@@ -116,15 +94,10 @@ async function obtenerLinkDirecto(urlPagina: string): Promise<string | null> {
 
     const html = await response.text();
 
-    // Buscar links de descarga directa (sin anuncios)
     const patrones = [
-      // Patrón 1: Links de descarga directa
       /<a[^>]*href="(https?:\/\/[^"]*\.(mp4|mkv|avi|mov|webm)[^"]*)"[^>]*>/gi,
-      // Patrón 2: Links de streaming directo
       /<iframe[^>]*src="(https?:\/\/[^"]*)"[^>]*>/gi,
-      // Patrón 3: Links de descarga con clase específica
       /<a[^>]*class="[^"]*download[^"]*"[^>]*href="([^"]*)"[^>]*>/gi,
-      // Patrón 4: Links de Mega, MediaFire, etc.
       /<a[^>]*href="(https?:\/\/(mega\.nz|mediafire\.com|drive\.google\.com)[^"]*)"[^>]*>/gi,
     ];
 
@@ -139,7 +112,6 @@ async function obtenerLinkDirecto(urlPagina: string): Promise<string | null> {
       }
     }
 
-    // Si no encuentra link directo, devolver la página de detalle
     return urlPagina;
 
   } catch (error) {

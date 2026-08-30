@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { Search, Home, Film, List, Star, User, Play } from "lucide-react";
+import { Search, Home as HomeIcon, Film, List, Star, User, Play } from "lucide-react";
 
 interface Pelicula {
   id: number;
@@ -28,7 +27,6 @@ export default function Home() {
     fetch("/api/peliculas")
       .then((res) => res.json())
       .then((data) => {
-        // Agregar rating y badge aleatorios para demo
         const pelisConRating = data.map((p: Pelicula) => ({
           ...p,
           rating: (Math.random() * 2 + 6.5).toFixed(1),
@@ -165,7 +163,7 @@ export default function Home() {
           )}
         </section>
 
-        {/* Sección adicional: AGOSTO 27 (como en la imagen) */}
+        {/* Sección adicional: AGOSTO 27 */}
         {!cargando && filtradas.length > 3 && (
           <section className="mt-8">
             <h3 className="text-lg font-semibold mb-4">📅 AGOSTO 27</h3>
@@ -204,7 +202,7 @@ export default function Home() {
       <nav className="fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-sm border-t border-gray-800 px-4 py-2">
         <div className="flex justify-around max-w-md mx-auto">
           <button className="flex flex-col items-center gap-0.5 text-white">
-            <Home className="w-5 h-5" />
+            <HomeIcon className="w-5 h-5" />
             <span className="text-[10px]">Inicio</span>
           </button>
           <button className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-white transition-colors">
@@ -228,3 +226,4 @@ export default function Home() {
     </div>
   );
 }
+Fix: Renombrar icono Home a HomeIcon en página pública

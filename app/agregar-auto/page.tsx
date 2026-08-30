@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Search, Sparkles, Loader2, ExternalLink, CheckCircle, AlertCircle } from "lucide-react";
+import { ArrowLeft, Search, Sparkles, Loader2, ExternalLink, CheckCircle, AlertCircle, Link as LinkIcon } from "lucide-react";
 
 interface PeliculaEncontrada {
   titulo: string;
@@ -18,25 +18,34 @@ interface PeliculaEncontrada {
 export default function AgregarAutoPage() {
   const router = useRouter();
   const [nombre, setNombre] = useState("");
+  const [link, setLink] = useState("");
   const [cargando, setCargando] = useState(false);
   const [resultado, setResultado] = useState<PeliculaEncontrada | null>(null);
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [guardado, setGuardado] = useState(false);
+  const [usarLink, setUsarLink] = useState(false);
 
   const buscarPelicula = async () => {
-    if (!nombre.trim()) {
-      setError("Escribe el nombre de la película");
-      return;
-    }
-
     setCargando(true);
     setError("");
     setResultado(null);
     setGuardado(false);
 
     try {
-      const res = await fetch(`/api/buscar-cinecalidad?nombre=${encodeURIComponent(nombre)}`);
+      let url = `/api/buscar-cinecalidad?`;
+      
+      if (usarLink && link.trim()) {
+        url += `link=${encodeURIComponent(link.trim())}`;
+      } else if (nombre.trim()) {
+        url += `nombre=${encodeURIComponent(nombre.trim())}`;
+      } else {
+        setError("Escribe el nombre o pega el link de la película");
+        setCargando(false);
+        return;
+      }
+
+      const res = await fetch(url);
       const data = await res.json();
 
       if (!res.ok) {
@@ -50,7 +59,7 @@ export default function AgregarAutoPage() {
           setError("⚠️ No se encontró link directo. Se usará la página de detalle.");
         }
       } else {
-        setError("No se encontró la película en Cinecalidad");
+        setError("No se encontró la película");
       }
     } catch (err) {
       setError("Error al buscar la película");
@@ -73,7 +82,7 @@ export default function AgregarAutoPage() {
           genero: resultado.genero,
           sinopsis: resultado.sinopsis,
           caratula: resultado.caratula,
-          link_directo: resultado.link_directo || "",
+          link_directo: resultado.link_directo || link || "",
           fuente: "cinecalidad",
         }),
       });
@@ -106,18 +115,50 @@ export default function AgregarAutoPage() {
           <span className="text-[#d4af37]"> Automático</span>
         </h1>
         <p className="text-gray-400 text-sm mb-6">
-          Escribe el nombre de la película y el sistema buscará en Cinecalidad: carátula, sinopsis, año y link directo sin anuncios
+          Escribe el nombre de la película o pega el link de Cinecalidad para obtener carátula, sinopsis, año y link directo
         </p>
 
+        {/* Toggle */}
+        <div className="flex gap-4 mb-4">
+          <button
+            onClick={() => setUsarLink(false)}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+              !usarLink ? "bg-[#d4af37] text-black" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+            }`}
+          >
+            🔍 Buscar por nombre
+          </button>
+          <button
+            onClick={() => setUsarLink(true)}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+              usarLink ? "bg-[#d4af37] text-black" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+            }`}
+          >
+            🔗 Pegar link
+          </button>
+        </div>
+
+        {/* Input y botón */}
         <div className="flex gap-3 mb-6">
-          <input
-            type="text"
-            placeholder="Ej: Dune, Oppenheimer, Barbie..."
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && buscarPelicula()}
-            className="flex-1 bg-gray-900/50 border border-gray-700 rounded-xl px-4 py-3 focus:border-[#d4af37] focus:outline-none transition-colors text-white placeholder-gray-500"
-          />
+          {usarLink ? (
+            <input
+              type="text"
+              placeholder="https://www.cinecalidad.am/ver-pelicula/rent-free/"
+              value={link}
+              onChange={(e) => setLink(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && buscarPelicula()}
+              className="flex-1 bg-gray-900/50 border border-gray-700 rounded-xl px-4 py-3 focus:border-[#d4af37] focus:outline-none transition-colors text-white placeholder-gray-500"
+            />
+          ) : (
+            <input
+              type="text"
+              placeholder="Ej: Dune, Oppenheimer, Barbie..."
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && buscarPelicula()}
+              className="flex-1 bg-gray-900/50 border border-gray-700 rounded-xl px-4 py-3 focus:border-[#d4af37] focus:outline-none transition-colors text-white placeholder-gray-500"
+            />
+          )}
           <button
             onClick={buscarPelicula}
             disabled={cargando}
@@ -143,7 +184,6 @@ export default function AgregarAutoPage() {
           <div className="text-center py-12">
             <Loader2 className="w-12 h-12 animate-spin text-[#d4af37] mx-auto mb-4" />
             <p className="text-gray-400">Buscando en Cinecalidad...</p>
-            <p className="text-gray-500 text-sm mt-2">Obteniendo carátula, sinopsis y link directo</p>
           </div>
         )}
 
@@ -189,7 +229,7 @@ export default function AgregarAutoPage() {
                 <p className="text-gray-300 text-sm mt-3 line-clamp-3">{resultado.sinopsis}</p>
 
                 <div className="mt-4 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
-                  <p className="text-xs text-gray-500 mb-1">🎬 Link directo sin anuncios:</p>
+                  <p className="text-xs text-gray-500 mb-1">🎬 Link directo:</p>
                   {resultado.link_directo ? (
                     <a
                       href={resultado.link_directo}

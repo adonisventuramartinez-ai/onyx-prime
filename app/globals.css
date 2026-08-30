@@ -2,21 +2,90 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  body {
-    @apply bg-black text-white antialiased;
+:root {
+  --nf-black: #000000;
+  --nf-dark: #141414;
+  --nf-red: #e50914;
+  --nf-red-hover: #f40612;
+  --nf-white: #ffffff;
+  --nf-gray: #808080;
+  --nf-gray-light: #b3b3b3;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  background-color: var(--nf-dark);
+  color: var(--nf-white);
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  scroll-behavior: smooth;
+}
+
+.row-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.row-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--nf-black);
+}
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--nf-red);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
   }
-  
-  ::-webkit-scrollbar {
-    width: 6px;
+  to {
+    opacity: 1;
   }
-  
-  ::-webkit-scrollbar-track {
-    background: #121212;
+}
+
+.fade-in {
+  animation: fadeIn 0.6s ease-out both;
+}
+
+@keyframes heroKen {
+  from {
+    transform: scale(1);
   }
-  
-  ::-webkit-scrollbar-thumb {
-    background: #d4af37;
-    border-radius: 10px;
+  to {
+    transform: scale(1.08);
+  }
+}
+
+.hero-ken-burns {
+  animation: heroKen 20s ease-out forwards;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--nf-white);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
   }
 }

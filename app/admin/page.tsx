@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, Film, Trash2, Eye, Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Plus, Film, Trash2, Eye, Sparkles, ArrowLeft } from "lucide-react";
 
 interface Pelicula {
   id: number;
@@ -15,32 +16,68 @@ interface Pelicula {
 }
 
 export default function AdminPage() {
+  const router = useRouter();
   const [peliculas, setPeliculas] = useState<Pelicula[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [password, setPassword] = useState("");
+  const [autenticado, setAutenticado] = useState(false);
 
-  useEffect(() => {
-    fetch("/api/peliculas")
-      .then((res) => res.json())
-      .then((data) => {
-        setPeliculas(data);
-        setCargando(false);
-      });
-  }, []);
+  // Login simple (puedes cambiarlo por un sistema más seguro)
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password === "admin123") {
+      setAutenticado(true);
+      cargarPeliculas();
+    } else {
+      alert("Contraseña incorrecta");
+    }
+  };
+
+  const cargarPeliculas = async () => {
+    const res = await fetch("/api/peliculas");
+    const data = await res.json();
+    setPeliculas(data);
+    setCargando(false);
+  };
 
   const eliminarPelicula = async (id: number) => {
     if (!confirm("¿Eliminar esta película?")) return;
-    try {
-      await fetch(`/api/peliculas/${id}`, { method: "DELETE" });
-      setPeliculas(peliculas.filter(p => p.id !== id));
-    } catch (error) {
-      console.error("Error al eliminar");
-    }
+    await fetch(`/api/peliculas/${id}`, { method: "DELETE" });
+    setPeliculas(peliculas.filter(p => p.id !== id));
   };
+
+  if (!autenticado) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
+        <div className="bg-gray-900/50 border border-gray-700 rounded-2xl p-8 max-w-sm w-full">
+          <h1 className="text-2xl font-bold text-center mb-2">
+            <span className="text-white">ONYX</span>
+            <span className="text-[#d4af37]">PRIME</span>
+          </h1>
+          <p className="text-gray-400 text-sm text-center mb-6">Panel de administración</p>
+          <form onSubmit={handleLogin}>
+            <input
+              type="password"
+              placeholder="Contraseña"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3 focus:border-[#d4af37] focus:outline-none transition-colors text-white mb-4"
+            />
+            <button
+              type="submit"
+              className="w-full bg-[#d4af37] hover:bg-[#c19b2e] text-black py-3 rounded-xl font-semibold transition-colors"
+            >
+              Entrar
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black text-white p-4">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="flex flex-wrap justify-between items-center gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold">
@@ -63,6 +100,12 @@ export default function AdminPage() {
             >
               <Plus className="w-5 h-5" /> Agregar Manual
             </Link>
+            <button
+              onClick={() => setAutenticado(false)}
+              className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg text-sm transition-colors"
+            >
+              Salir
+            </button>
           </div>
         </div>
 

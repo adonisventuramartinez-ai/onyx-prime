@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Search, Home, Film, List, Tv, User, Shield } from "lucide-react";
+import { Search, Home as HomeIcon, Film, List, Tv, User, Shield } from "lucide-react";
 
 interface Pelicula {
   id: number;
@@ -122,7 +122,7 @@ export default function Home() {
       <nav className="fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-sm border-t border-gray-800 px-4 py-2">
         <div className="flex justify-around max-w-md mx-auto">
           <Link href="/" className="flex flex-col items-center gap-0.5 text-white">
-            <Home className="w-5 h-5" />
+            <HomeIcon className="w-5 h-5" />
             <span className="text-[10px]">Inicio</span>
           </Link>
           <Link href="/admin" className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-white transition-colors">

@@ -2,14 +2,27 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
   const nombre = req.nextUrl.searchParams.get("nombre");
+  const linkDirectoProporcionado = req.nextUrl.searchParams.get("link");
+
+  // Si el usuario proporcionó un link directo, usarlo
+  if (linkDirectoProporcionado) {
+    try {
+      const pelicula = await extraerPeliculaDesdeLink(linkDirectoProporcionado);
+      if (pelicula) {
+        return NextResponse.json({ pelicula });
+      }
+    } catch (error) {
+      console.error("Error al extraer desde link:", error);
+    }
+  }
 
   if (!nombre) {
-    return NextResponse.json({ error: "Nombre de película requerido" }, { status: 400 });
+    return NextResponse.json({ error: "Nombre de película o link requerido" }, { status: 400 });
   }
 
   try {
     // ========================================
-    // BUSCAR EN CINECALIDAD
+    // OPCIÓN 1: BUSCAR EN CINECALIDAD
     // ========================================
     const searchUrl = `https://www.cinecalidad.am/?s=${encodeURIComponent(nombre)}`;
     
@@ -27,21 +40,18 @@ export async function GET(req: NextRequest) {
 
     const html = await response.text();
     
-    // ========================================
-    // EXTRAER DATOS DE LA PELÍCULA
-    // ========================================
-    const pelicula = extraerPeliculaDeHTML(html, nombre);
+    // Extraer datos de la búsqueda
+    let pelicula = extraerPeliculaDeBusqueda(html, nombre);
+
+    // Si no encontró en la búsqueda, intentar buscar directamente
+    if (!pelicula) {
+      // Intentar con el link directo generado
+      const linkGenerado = `https://www.cinecalidad.am/ver-pelicula/${nombre.toLowerCase().replace(/ /g, "-")}/`;
+      pelicula = await extraerPeliculaDesdeLink(linkGenerado);
+    }
 
     if (!pelicula) {
       return NextResponse.json({ error: "No se encontró la película en Cinecalidad" }, { status: 404 });
-    }
-
-    // ========================================
-    // OBTENER LINK DIRECTO (sin anuncios)
-    // ========================================
-    if (pelicula.link) {
-      const linkDirecto = await obtenerLinkDirecto(pelicula.link);
-      pelicula.link_directo = linkDirecto || pelicula.link;
     }
 
     return NextResponse.json({ pelicula });
@@ -53,64 +63,11 @@ export async function GET(req: NextRequest) {
 }
 
 // ========================================
-// FUNCIÓN: Extraer película del HTML
+// FUNCIÓN: Extraer desde link directo
 // ========================================
-function extraerPeliculaDeHTML(html: string, nombreBuscado: string) {
-  // Buscar el primer resultado de la búsqueda
-  const regexResultado = /<article[^>]*class="[^"]*movie-item[^"]*"[^>]*>([\s\S]*?)<\/article>/i;
-  const match = regexResultado.exec(html);
-  
-  if (!match) return null;
-
-  const item = match[1];
-
-  // Extraer título
-  const tituloMatch = item.match(/<h[2-3][^>]*>([^<]*)<\/h[2-3]>/i) || 
-                      item.match(/<span[^>]*class="[^"]*title[^"]*"[^>]*>([^<]*)<\/span>/i) ||
-                      item.match(/<a[^>]*>([^<]*)<\/a>/i);
-  const titulo = tituloMatch ? tituloMatch[1].trim() : nombreBuscado;
-
-  // Extraer año
-  const anioMatch = item.match(/\b(19\d{2}|20\d{2})\b/);
-  const anio = anioMatch ? anioMatch[1] : "2024";
-
-  // Extraer carátula
-  const imgMatch = item.match(/<img[^>]*src="([^"]*)"[^>]*>/i);
-  const caratula = imgMatch ? imgMatch[1] : "";
-
-  // Extraer link de la página de la película
-  const linkMatch = item.match(/<a[^>]*href="([^"]*)"[^>]*>/i);
-  const link = linkMatch ? linkMatch[1] : "";
-
-  // Extraer sinopsis
-  const sinopsisMatch = item.match(/<p[^>]*class="[^"]*synopsis[^"]*"[^>]*>([^<]*)<\/p>/i) ||
-                        item.match(/<div[^>]*class="[^"]*synopsis[^"]*"[^>]*>([^<]*)<\/div>/i) ||
-                        item.match(/<p[^>]*>([^<]*)<\/p>/i);
-  const sinopsis = sinopsisMatch ? sinopsisMatch[1].trim() : "Sin sinopsis disponible";
-
-  // Extraer género
-  const generoMatch = item.match(/<span[^>]*class="[^"]*genre[^"]*"[^>]*>([^<]*)<\/span>/i) ||
-                      item.match(/<span[^>]*class="[^"]*categoria[^"]*"[^>]*>([^<]*)<\/span>/i);
-  const genero = generoMatch ? generoMatch[1].trim() : "Desconocido";
-
-  return {
-    titulo,
-    anio,
-    genero,
-    sinopsis,
-    caratula: caratula.startsWith("http") ? caratula : `https://www.cinecalidad.am${caratula}`,
-    link: link.startsWith("http") ? link : `https://www.cinecalidad.am${link}`,
-    link_directo: "",
-    fuente: "cinecalidad",
-  };
-}
-
-// ========================================
-// FUNCIÓN: Obtener link directo sin anuncios
-// ========================================
-async function obtenerLinkDirecto(urlPagina: string): Promise<string | null> {
+async function extraerPeliculaDesdeLink(link: string) {
   try {
-    const response = await fetch(urlPagina, {
+    const response = await fetch(link, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         "Referer": "https://www.cinecalidad.am/",
@@ -121,41 +78,120 @@ async function obtenerLinkDirecto(urlPagina: string): Promise<string | null> {
 
     const html = await response.text();
 
-    // Patrones para encontrar links de descarga directa o streaming
-    const patrones = [
-      /<a[^>]*href="(https?:\/\/[^"]*\.(mp4|mkv|avi|mov|webm)[^"]*)"[^>]*>/gi,
-      /<iframe[^>]*src="(https?:\/\/[^"]*)"[^>]*>/gi,
-      /<a[^>]*class="[^"]*download[^"]*"[^>]*href="([^"]*)"[^>]*>/gi,
-      /<a[^>]*href="(https?:\/\/(mega\.nz|mediafire\.com|drive\.google\.com)[^"]*)"[^>]*>/gi,
-      /<a[^>]*href="(https?:\/\/[^"]*\.(m3u8|mpd)[^"]*)"[^>]*>/gi,
-      /<a[^>]*href="(https?:\/\/[^"]*\/download\/[^"]*)"[^>]*>/gi,
-    ];
+    // Extraer título
+    const tituloMatch = html.match(/<h1[^>]*>([^<]*)<\/h1>/i) ||
+                        html.match(/<title>([^<]*)<\/title>/i);
+    const titulo = tituloMatch ? tituloMatch[1].trim().replace(" - Cinecalidad", "") : "Sin título";
 
-    for (const patron of patrones) {
-      const regex = new RegExp(patron);
-      let match;
-      while ((match = regex.exec(html)) !== null) {
-        const link = match[1];
-        if (link && 
-            !link.includes("anuncio") && 
-            !link.includes("ad") &&
-            !link.includes("google") &&
-            !link.includes("facebook") &&
-            !link.includes("twitter") &&
-            !link.includes("instagram") &&
-            !link.includes("pinterest") &&
-            !link.includes("youtube") &&
-            !link.includes("whatsapp") &&
-            !link.includes("telegram")) {
-          return link;
-        }
-      }
-    }
+    // Extraer año
+    const anioMatch = html.match(/\b(19\d{2}|20\d{2})\b/);
+    const anio = anioMatch ? anioMatch[1] : "2024";
 
-    return urlPagina;
+    // Extraer carátula
+    const imgMatch = html.match(/<img[^>]*src="([^"]*)"[^>]*class="[^"]*poster[^"]*"[^>]*>/i) ||
+                     html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]*)"[^>]*>/i);
+    const caratula = imgMatch ? imgMatch[1] : "";
+
+    // Extraer sinopsis
+    const sinopsisMatch = html.match(/<p[^>]*class="[^"]*synopsis[^"]*"[^>]*>([^<]*)<\/p>/i) ||
+                          html.match(/<meta[^>]*name="description"[^>]*content="([^"]*)"[^>]*>/i);
+    const sinopsis = sinopsisMatch ? sinopsisMatch[1].trim() : "Sin sinopsis disponible";
+
+    // Extraer género
+    const generoMatch = html.match(/<span[^>]*class="[^"]*genre[^"]*"[^>]*>([^<]*)<\/span>/i);
+    const genero = generoMatch ? generoMatch[1].trim() : "Desconocido";
+
+    // Buscar link directo de descarga
+    const linkDirecto = await obtenerLinkDirectoDesdePagina(html, link);
+
+    return {
+      titulo,
+      anio,
+      genero,
+      sinopsis,
+      caratula: caratula.startsWith("http") ? caratula : `https://www.cinecalidad.am${caratula}`,
+      link_directo: linkDirecto || link,
+      fuente: "cinecalidad",
+    };
 
   } catch (error) {
-    console.error("Error obteniendo link directo:", error);
+    console.error("Error al extraer desde link:", error);
     return null;
   }
+}
+
+// ========================================
+// FUNCIÓN: Extraer de búsqueda
+// ========================================
+function extraerPeliculaDeBusqueda(html: string, nombreBuscado: string) {
+  const regexResultado = /<article[^>]*class="[^"]*movie-item[^"]*"[^>]*>([\s\S]*?)<\/article>/i;
+  const match = regexResultado.exec(html);
+  
+  if (!match) return null;
+
+  const item = match[1];
+
+  const tituloMatch = item.match(/<h[2-3][^>]*>([^<]*)<\/h[2-3]>/i) || 
+                      item.match(/<span[^>]*class="[^"]*title[^"]*"[^>]*>([^<]*)<\/span>/i);
+  const titulo = tituloMatch ? tituloMatch[1].trim() : nombreBuscado;
+
+  const anioMatch = item.match(/\b(19\d{2}|20\d{2})\b/);
+  const anio = anioMatch ? anioMatch[1] : "2024";
+
+  const imgMatch = item.match(/<img[^>]*src="([^"]*)"[^>]*>/i);
+  const caratula = imgMatch ? imgMatch[1] : "";
+
+  const linkMatch = item.match(/<a[^>]*href="([^"]*)"[^>]*>/i);
+  const link = linkMatch ? linkMatch[1] : "";
+
+  const sinopsisMatch = item.match(/<p[^>]*class="[^"]*synopsis[^"]*"[^>]*>([^<]*)<\/p>/i);
+  const sinopsis = sinopsisMatch ? sinopsisMatch[1].trim() : "Sin sinopsis disponible";
+
+  const generoMatch = item.match(/<span[^>]*class="[^"]*genre[^"]*"[^>]*>([^<]*)<\/span>/i);
+  const genero = generoMatch ? generoMatch[1].trim() : "Desconocido";
+
+  return {
+    titulo,
+    anio,
+    genero,
+    sinopsis,
+    caratula: caratula.startsWith("http") ? caratula : `https://www.cinecalidad.am${caratula}`,
+    link_directo: link ? (link.startsWith("http") ? link : `https://www.cinecalidad.am${link}`) : "",
+    fuente: "cinecalidad",
+  };
+}
+
+// ========================================
+// FUNCIÓN: Obtener link directo sin anuncios
+// ========================================
+async function obtenerLinkDirectoDesdePagina(html: string, urlBase: string): Promise<string | null> {
+  const patrones = [
+    /<a[^>]*href="(https?:\/\/[^"]*\.(mp4|mkv|avi|mov|webm|m3u8|mpd)[^"]*)"[^>]*>/gi,
+    /<a[^>]*class="[^"]*download[^"]*"[^>]*href="([^"]*)"[^>]*>/gi,
+    /<a[^>]*href="(https?:\/\/(mega\.nz|mediafire\.com|drive\.google\.com)[^"]*)"[^>]*>/gi,
+    /<source[^>]*src="([^"]*)"[^>]*>/gi,
+  ];
+
+  for (const patron of patrones) {
+    const regex = new RegExp(patron);
+    let match;
+    while ((match = regex.exec(html)) !== null) {
+      const link = match[1];
+      if (link && 
+          !link.includes("anuncio") && 
+          !link.includes("ad") &&
+          !link.includes("google") &&
+          !link.includes("facebook") &&
+          !link.includes("twitter") &&
+          !link.includes("instagram") &&
+          !link.includes("pinterest") &&
+          !link.includes("youtube") &&
+          !link.includes("whatsapp") &&
+          !link.includes("telegram")) {
+        return link;
+      }
+    }
+  }
+
+  return null;
 }

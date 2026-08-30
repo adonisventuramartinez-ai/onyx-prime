@@ -1,243 +1,343 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Search, Home as HomeIcon, Film, List, Star, User, Play, Info } from "lucide-react";
+import type { Pelicula } from "@/lib/db";
+import { CARATULA_FALLBACK } from "@/lib/db";
 
-interface Pelicula {
-  id: number;
-  titulo: string;
-  anio: string;
-  genero: string;
-  sinopsis: string;
-  caratula: string;
-  link_directo: string;
-  fuente: string;
-  rating?: string;
-}
+const CATEGORIAS = ["Inicio", "Telenovela", "Películas", "Series", "Mi lista"];
 
-export default function Home() {
+export default function HomePage() {
   const [peliculas, setPeliculas] = useState<Pelicula[]>([]);
   const [cargando, setCargando] = useState(true);
   const [busqueda, setBusqueda] = useState("");
-  const [categoria, setCategoria] = useState("Inicio");
+  const [categoriaActiva, setCategoriaActiva] = useState("Inicio");
+  const [navScrolled, setNavScrolled] = useState(false);
+  const [misListaIds, setMisListaIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetch("/api/peliculas")
       .then((res) => res.json())
       .then((data) => {
-        const pelisConRating = data.map((p: Pelicula) => ({
-          ...p,
-          rating: (Math.random() * 2 + 6.5).toFixed(1),
-        }));
-        setPeliculas(pelisConRating);
+        setPeliculas(Array.isArray(data) ? data : []);
         setCargando(false);
       })
       .catch(() => setCargando(false));
+
+    const guardado = localStorage.getItem("onyxflix-mi-lista");
+    if (guardado) {
+      setMisListaIds(new Set(JSON.parse(guardado)));
+    }
+
+    const onScroll = () => setNavScrolled(window.scrollY > 40);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const filtradas = peliculas.filter((p) =>
-    p.titulo.toLowerCase().includes(busqueda.toLowerCase())
+  const toggleMiLista = (id: string) => {
+    setMisListaIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      localStorage.setItem("onyxflix-mi-lista", JSON.stringify([...next]));
+      return next;
+    });
+  };
+
+  const destacada = peliculas.find((p) => p.destacada) ?? peliculas[0];
+
+  const generos = useMemo(
+    () => [...new Set(peliculas.map((p) => p.genero).filter(Boolean))],
+    [peliculas]
   );
 
-  const destacada = peliculas.length > 0 ? peliculas[0] : null;
+  const filtradas = useMemo(() => {
+    let lista = peliculas;
+    if (busqueda.trim()) {
+      lista = lista.filter((p) =>
+        p.titulo.toLowerCase().includes(busqueda.toLowerCase())
+      );
+    }
+    if (categoriaActiva === "Mi lista") {
+      lista = lista.filter((p) => misListaIds.has(p.id));
+    } else if (categoriaActiva === "Series" || categoriaActiva === "Telenovela") {
+      lista = lista.filter((p) =>
+        p.genero?.toLowerCase().includes(categoriaActiva.toLowerCase())
+      );
+    }
+    return lista;
+  }, [peliculas, busqueda, categoriaActiva, misListaIds]);
+
+  const recientes = [...peliculas]
+    .sort((a, b) => new Date(b.creado_en).getTime() - new Date(a.creado_en).getTime())
+    .slice(0, 12);
 
   return (
-    <div className="min-h-screen bg-[#141414] text-white pb-20">
-      {/* Navbar estilo Netflix */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/95 to-transparent px-4 py-4">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold tracking-tight">
-            <span className="text-white">ONYX</span>
-            <span className="text-[#E50914]">FLIX</span>
-          </h1>
+    <main className="min-h-screen bg-nf-dark">
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-300 ${
+          navScrolled ? "bg-nf-black" : "bg-gradient-to-b from-black/80 to-transparent"
+        }`}
+      >
+        <div className="flex items-center justify-between px-4 md:px-12 py-4 gap-4">
+          <div className="flex items-center gap-8">
+            <span className="text-nf-red font-black text-2xl md:text-3xl tracking-tight select-none">
+              ONYXFLIX
+            </span>
+            <nav className="hidden md:flex gap-5 text-sm text-gray-200">
+              {CATEGORIAS.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setCategoriaActiva(cat)}
+                  className={`transition-colors hover:text-white ${
+                    categoriaActiva === cat
+                      ? "text-white font-semibold"
+                      : "text-nf-gray-light"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </nav>
+          </div>
+
           <div className="flex items-center gap-4">
-            <div className="relative hidden sm:block">
+            <div className="relative">
               <input
                 type="text"
-                placeholder="Títulos, personas, géneros..."
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
-                className="bg-black/60 text-sm px-4 py-2 pl-10 rounded-full border border-gray-700 focus:border-[#E50914] focus:outline-none transition-colors w-40 focus:w-64 text-white placeholder-gray-400"
+                placeholder="Títulos, personas, géneros"
+                className="bg-black/70 border border-white/30 rounded px-3 py-1.5 text-sm w-36 md:w-64 focus:outline-none focus:border-white transition-all placeholder:text-nf-gray-light"
               />
-              <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
             </div>
-            <div className="w-8 h-8 rounded-full bg-[#E50914] flex items-center justify-center text-white text-sm font-bold">
-              U
+            <Link
+              href="/admin"
+              className="text-sm text-nf-gray-light hover:text-white transition-colors hidden sm:block"
+            >
+              Mío
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {destacada && (
+        <section className="relative h-[56vw] max-h-[85vh] min-h-[420px] w-full overflow-hidden">
+          <div className="absolute inset-0 overflow-hidden">
+            <img
+              src={destacada.caratula || CARATULA_FALLBACK}
+              alt={destacada.titulo}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = CARATULA_FALLBACK;
+              }}
+              className="w-full h-full object-cover hero-ken-burns"
+            />
+          </div>
+          <div className="absolute inset-0 bg-hero-gradient" />
+          <div className="absolute inset-0 bg-hero-fade-bottom" />
+
+          <div className="relative h-full flex flex-col justify-end md:justify-center px-4 md:px-12 pb-24 md:pb-0 max-w-xl fade-in">
+            <h1 className="text-3xl md:text-6xl font-black mb-3 drop-shadow-lg leading-tight">
+              {destacada.titulo}
+            </h1>
+            <div className="flex items-center gap-3 text-sm md:text-base text-gray-200 mb-3">
+              <span className="text-green-500 font-semibold">
+                {destacada.fuente === "manual" ? "Añadida" : "Cinecalidad"}
+              </span>
+              <span>{destacada.anio}</span>
+              <span className="border border-nf-gray-light px-1.5 text-xs rounded">
+                {destacada.genero}
+              </span>
+            </div>
+            <p className="hidden md:block text-gray-200 text-base leading-relaxed mb-6 line-clamp-3">
+              {destacada.sinopsis}
+            </p>
+            <div className="flex gap-3">
+              <Link
+                href={`/ver/${destacada.id}`}
+                className="flex items-center gap-2 bg-white text-black px-6 py-2.5 rounded font-semibold hover:bg-white/80 transition-colors"
+              >
+                <PlayIcon /> Reproducir
+              </Link>
+              <button
+                onClick={() => toggleMiLista(destacada.id)}
+                className="flex items-center gap-2 bg-gray-500/40 text-white px-6 py-2.5 rounded font-semibold hover:bg-gray-500/60 transition-colors backdrop-blur-sm"
+              >
+                <InfoIcon />
+                {misListaIds.has(destacada.id) ? "En mi lista" : "Mi lista"}
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      <section className="relative z-10 -mt-10 md:-mt-24 px-4 md:px-12 pb-20 space-y-10">
+        {cargando ? (
+          <SkeletonRows />
+        ) : peliculas.length === 0 ? (
+          <EmptyState />
+        ) : busqueda.trim() || categoriaActiva !== "Inicio" ? (
+          <Fila titulo={`Resultados`} peliculas={filtradas} misListaIds={misListaIds} onToggle={toggleMiLista} />
+        ) : (
+          <>
+            <Fila titulo="Agregadas recientemente" peliculas={recientes} misListaIds={misListaIds} onToggle={toggleMiLista} />
+            {generos.map((genero) => (
+              <Fila
+                key={genero}
+                titulo={genero}
+                peliculas={peliculas.filter((p) => p.genero === genero)}
+                misListaIds={misListaIds}
+                onToggle={toggleMiLista}
+              />
+            ))}
+          </>
+        )}
+      </section>
+
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-nf-black border-t border-white/10 flex justify-around py-2 z-40">
+        {["Inicio", "Géneros", "Mi lista", "Promoción", "Mío"].map((item) => (
+          <Link
+            key={item}
+            href={item === "Mío" ? "/admin" : "#"}
+            onClick={() => {
+              if (item === "Inicio") setCategoriaActiva("Inicio");
+              if (item === "Mi lista") setCategoriaActiva("Mi lista");
+            }}
+            className="text-xs text-nf-gray-light hover:text-white flex flex-col items-center gap-1 px-2"
+          >
+            {item}
+          </Link>
+        ))}
+      </nav>
+    </main>
+  );
+}
+
+function Fila({
+  titulo,
+  peliculas,
+  misListaIds,
+  onToggle,
+}: {
+  titulo: string;
+  peliculas: Pelicula[];
+  misListaIds: Set<string>;
+  onToggle: (id: string) => void;
+}) {
+  if (peliculas.length === 0) return null;
+  return (
+    <div>
+      <h2 className="text-lg md:text-xl font-semibold mb-3">{titulo}</h2>
+      <div className="row-scroll flex gap-2 overflow-x-auto pb-4">
+        {peliculas.map((p) => (
+          <TarjetaPelicula key={p.id} pelicula={p} enLista={misListaIds.has(p.id)} onToggle={onToggle} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TarjetaPelicula({
+  pelicula,
+  enLista,
+  onToggle,
+}: {
+  pelicula: Pelicula;
+  enLista: boolean;
+  onToggle: (id: string) => void;
+}) {
+  const esNueva =
+    new Date(pelicula.creado_en).getTime() > Date.now() - 1000 * 60 * 60 * 24 * 7;
+
+  return (
+    <div className="group relative flex-none w-[42vw] sm:w-[28vw] md:w-[19vw] lg:w-[15vw] transition-transform duration-300 hover:z-20 hover:scale-110">
+      <Link href={`/ver/${pelicula.id}`}>
+        <div className="relative rounded overflow-hidden aspect-[2/3] bg-neutral-800 shadow-lg">
+          <img
+            src={pelicula.caratula || CARATULA_FALLBACK}
+            alt={pelicula.titulo}
+            loading="lazy"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = CARATULA_FALLBACK;
+            }}
+            className="w-full h-full object-cover transition-all duration-300 group-hover:brightness-75"
+          />
+          {esNueva && (
+            <span className="absolute top-1.5 left-1.5 bg-nf-red text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+              NUEVO
+            </span>
+          )}
+          <div className="absolute inset-0 bg-card-gradient opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-2">
+            <p className="text-xs font-semibold line-clamp-1">{pelicula.titulo}</p>
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="text-[10px] text-nf-gray-light">{pelicula.anio}</span>
+              <span className="text-[10px] border border-white/40 px-1 rounded">{pelicula.genero}</span>
             </div>
           </div>
         </div>
-      </nav>
-
-      {/* Categorías */}
-      <div className="fixed top-16 left-0 right-0 z-40 bg-[#141414]/90 backdrop-blur-sm border-b border-gray-800 px-4 py-3 overflow-x-auto">
-        <div className="flex gap-6 max-w-7xl mx-auto">
-          {["Inicio", "Telenovela", "Películas", "Series", "Mi lista"].map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setCategoria(cat)}
-              className={`text-sm font-medium transition-colors whitespace-nowrap ${
-                categoria === cat ? "text-white" : "text-gray-400 hover:text-white"
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Contenido */}
-      <main className="pt-36 px-4 max-w-7xl mx-auto">
-        {/* Hero - Película destacada */}
-        {destacada && (
-          <section className="relative rounded-xl overflow-hidden mb-10 h-[400px] md:h-[500px] bg-gradient-to-br from-gray-900 to-black">
-            {destacada.caratula && (
-              <div className="absolute inset-0">
-                <img
-                  src={destacada.caratula}
-                  alt={destacada.titulo}
-                  className="w-full h-full object-cover opacity-60"
-                />
-              </div>
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-transparent to-transparent" />
-            <div className="absolute bottom-0 left-0 p-6 md:p-10 max-w-2xl">
-              <span className="inline-block px-3 py-1 bg-[#E50914] text-white text-xs font-bold rounded mb-3">
-                DESTACADA
-              </span>
-              <h2 className="text-4xl md:text-6xl font-bold mb-2">{destacada.titulo}</h2>
-              <div className="flex items-center gap-4 mt-2">
-                <span className="text-sm text-green-400 font-semibold">{destacada.rating} ★</span>
-                <span className="text-sm text-gray-300">{destacada.anio}</span>
-                <span className="text-sm text-gray-400">{destacada.genero}</span>
-              </div>
-              <p className="text-sm text-gray-300 mt-3 line-clamp-2 max-w-xl">
-                {destacada.sinopsis || "Sin sinopsis disponible"}
-              </p>
-              <div className="flex flex-wrap gap-3 mt-4">
-                <Link
-                  href={`/ver/${destacada.id}`}
-                  className="flex items-center gap-2 bg-white text-black px-6 py-2.5 rounded-md font-semibold hover:bg-gray-200 transition-colors"
-                >
-                  <Play className="w-4 h-4 fill-black" /> Reproducir
-                </Link>
-                <button className="flex items-center gap-2 bg-gray-700/70 hover:bg-gray-600/70 px-6 py-2.5 rounded-md font-semibold transition-colors">
-                  <Info className="w-4 h-4" /> Más información
-                </button>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Sección: Últimamente nuevo */}
-        <section>
-          <h3 className="text-xl font-semibold mb-4">🔥 Últimamente nuevo</h3>
-          {cargando ? (
-            <div className="flex justify-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E50914]" />
-            </div>
-          ) : filtradas.length === 0 ? (
-            <div className="text-center py-20 text-gray-500">
-              <p className="text-lg">No hay películas en el catálogo</p>
-              <p className="text-sm mt-2">Agrega películas desde el panel de administrador</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {filtradas.slice(0, 10).map((pelicula) => (
-                <Link href={`/ver/${pelicula.id}`} key={pelicula.id}>
-                  <div className="group cursor-pointer transition-all duration-300 hover:scale-105 hover:z-10">
-                    <div className="relative aspect-[2/3] rounded-lg overflow-hidden bg-gray-800">
-                      {pelicula.caratula ? (
-                        <img
-                          src={pelicula.caratula}
-                          alt={pelicula.titulo}
-                          className="w-full h-full object-cover transition-opacity group-hover:opacity-90"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-600 text-sm">
-                          Sin imagen
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
-                        <span className="text-white text-xs font-medium flex items-center gap-1">
-                          <Play className="w-3 h-3 fill-white" /> Reproducir
-                        </span>
-                      </div>
-                      {pelicula.rating && (
-                        <span className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-0.5 rounded-full">
-                          ★ {pelicula.rating}
-                        </span>
-                      )}
-                    </div>
-                    <h4 className="mt-2 text-sm font-medium truncate">{pelicula.titulo}</h4>
-                    <p className="text-xs text-gray-500 truncate">{pelicula.genero}</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Sección adicional: AGOSTO 27 */}
-        {!cargando && filtradas.length > 3 && (
-          <section className="mt-10">
-            <h3 className="text-xl font-semibold mb-4">📅 AGOSTO 27</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {filtradas.slice(3, 7).map((pelicula) => (
-                <Link href={`/ver/${pelicula.id}`} key={pelicula.id}>
-                  <div className="group cursor-pointer transition-all duration-300 hover:scale-105">
-                    <div className="relative aspect-[2/3] rounded-lg overflow-hidden bg-gray-800">
-                      {pelicula.caratula ? (
-                        <img
-                          src={pelicula.caratula}
-                          alt={pelicula.titulo}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-600 text-sm">
-                          Sin imagen
-                        </div>
-                      )}
-                      {pelicula.rating && (
-                        <span className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-0.5 rounded-full">
-                          ★ {pelicula.rating}
-                        </span>
-                      )}
-                    </div>
-                    <h4 className="mt-2 text-sm font-medium truncate">{pelicula.titulo}</h4>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
-      </main>
-
-      {/* Navegación inferior */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#141414] border-t border-gray-800 px-4 py-2">
-        <div className="flex justify-around max-w-md mx-auto">
-          <button className="flex flex-col items-center gap-0.5 text-white">
-            <HomeIcon className="w-5 h-5" />
-            <span className="text-[10px]">Inicio</span>
-          </button>
-          <button className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-white transition-colors">
-            <Film className="w-5 h-5" />
-            <span className="text-[10px]">Géneros</span>
-          </button>
-          <button className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-white transition-colors">
-            <List className="w-5 h-5" />
-            <span className="text-[10px]">Mi lista</span>
-          </button>
-          <button className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-white transition-colors">
-            <Star className="w-5 h-5" />
-            <span className="text-[10px]">Promoción</span>
-          </button>
-          <Link href="/admin" className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-white transition-colors">
-            <User className="w-5 h-5" />
-            <span className="text-[10px]">Mío</span>
-          </Link>
-        </div>
-      </nav>
+      </Link>
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          onToggle(pelicula.id);
+        }}
+        aria-label={enLista ? "Quitar de mi lista" : "Añadir a mi lista"}
+        className="absolute top-1.5 right-1.5 bg-black/60 rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/90"
+      >
+        {enLista ? "✓" : "+"}
+      </button>
     </div>
+  );
+}
+
+function SkeletonRows() {
+  return (
+    <div className="space-y-8 pt-10">
+      {[1, 2, 3].map((row) => (
+        <div key={row} className="space-y-3">
+          <div className="h-4 w-40 bg-white/10 rounded animate-pulse" />
+          <div className="flex gap-2">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div
+                key={i}
+                className="flex-none w-[19vw] aspect-[2/3] bg-white/10 rounded animate-pulse"
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="flex flex-col items-center justify-center text-center py-24 gap-4">
+      <p className="text-xl font-semibold">Tu catálogo está vacío</p>
+      <p className="text-nf-gray-light max-w-sm">
+        Agrega tu primera película desde el panel de administrador para verla aquí.
+      </p>
+      <Link
+        href="/admin"
+        className="mt-2 bg-nf-red hover:bg-nf-red-hover transition-colors px-6 py-2.5 rounded font-semibold"
+      >
+        Ir al panel admin
+      </Link>
+    </div>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M8 5v14l11-7z" />
+    </svg>
+  );
+}
+
+function InfoIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
+    </svg>
   );
 }

@@ -169,7 +169,7 @@ export default function AdminPage() {
           <h1 className="text-nf-red font-black text-2xl">ONYXFLIX · Admin</h1>
           <p className="text-nf-gray-light text-sm">Gestiona el catálogo</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <Link
             href="/"
             className="bg-white/10 hover:bg-white/20 transition-colors px-4 py-2 rounded font-semibold text-sm"
@@ -178,9 +178,15 @@ export default function AdminPage() {
           </Link>
           <Link
             href="/agregar"
-            className="bg-nf-red hover:bg-nf-red-hover transition-colors px-4 py-2 rounded font-semibold text-sm"
+            className="bg-blue-600 hover:bg-blue-700 transition-colors px-4 py-2 rounded font-semibold text-sm"
           >
             + Agregar manual
+          </Link>
+          <Link
+            href="/agregar-auto"
+            className="bg-purple-600 hover:bg-purple-700 transition-colors px-4 py-2 rounded font-semibold text-sm"
+          >
+            🤖 Buscar automático
           </Link>
         </div>
       </div>

@@ -148,6 +148,9 @@ export default function HomePage() {
               {menuAbierto && (
                 <div className="absolute right-0 mt-2 w-48 bg-black/95 border border-white/10 rounded shadow-lg py-2 text-sm">
                   <p className="px-4 py-1.5 text-nf-gray-light truncate">{emailUsuario}</p>
+                  <Link href="/perfil" className="block px-4 py-1.5 hover:bg-white/10">
+                    Mi perfil
+                  </Link>
                   {esAdmin && (
                     <Link href="/admin" className="block px-4 py-1.5 hover:bg-white/10">
                       Panel admin
@@ -172,7 +175,9 @@ export default function HomePage() {
             <img
               src={destacada.caratula || CARATULA_FALLBACK}
               alt={destacada.titulo}
-              onError={(e) => { (e.target as HTMLImageElement).src = CARATULA_FALLBACK; }}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = CARATULA_FALLBACK;
+              }}
               className="w-full h-full object-cover hero-ken-burns"
             />
           </div>
@@ -201,6 +206,12 @@ export default function HomePage() {
                 className="flex items-center gap-2 bg-white text-black px-6 py-2.5 rounded font-semibold hover:bg-white/80 transition-colors"
               >
                 <PlayIcon /> Reproducir
+              </Link>
+              <Link
+                href={`/pelicula/${destacada.id}`}
+                className="flex items-center gap-2 bg-gray-500/40 text-white px-6 py-2.5 rounded font-semibold hover:bg-gray-500/60 transition-colors backdrop-blur-sm"
+              >
+                Más información
               </Link>
               <button
                 onClick={() => toggleFavorito(destacada.id)}
@@ -257,7 +268,10 @@ export default function HomePage() {
 }
 
 function Fila({
-  titulo, peliculas, favoritoIds, onToggle,
+  titulo,
+  peliculas,
+  favoritoIds,
+  onToggle,
 }: {
   titulo: string;
   peliculas: Pelicula[];
@@ -278,7 +292,9 @@ function Fila({
 }
 
 function TarjetaPelicula({
-  pelicula, enLista, onToggle,
+  pelicula,
+  enLista,
+  onToggle,
 }: {
   pelicula: Pelicula;
   enLista: boolean;
@@ -289,13 +305,15 @@ function TarjetaPelicula({
 
   return (
     <div className="group relative flex-none w-[42vw] sm:w-[28vw] md:w-[19vw] lg:w-[15vw] transition-transform duration-300 hover:z-20 hover:scale-110">
-      <Link href={`/ver/${pelicula.id}`}>
+      <Link href={`/pelicula/${pelicula.id}`}>
         <div className="relative rounded overflow-hidden aspect-[2/3] bg-neutral-800 shadow-lg">
           <img
             src={pelicula.caratula || CARATULA_FALLBACK}
             alt={pelicula.titulo}
             loading="lazy"
-            onError={(e) => { (e.target as HTMLImageElement).src = CARATULA_FALLBACK; }}
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = CARATULA_FALLBACK;
+            }}
             className="w-full h-full object-cover transition-all duration-300 group-hover:brightness-75"
           />
           {esNueva && (
@@ -313,7 +331,10 @@ function TarjetaPelicula({
         </div>
       </Link>
       <button
-        onClick={(e) => { e.preventDefault(); onToggle(pelicula.id); }}
+        onClick={(e) => {
+          e.preventDefault();
+          onToggle(pelicula.id);
+        }}
         aria-label={enLista ? "Quitar de mi lista" : "Añadir a mi lista"}
         className="absolute top-1.5 right-1.5 bg-black/60 rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/90"
       >

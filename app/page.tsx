@@ -1,6 +1,7 @@
 "use client";
 
 export const dynamic = "force-dynamic";
+
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -22,6 +23,7 @@ export default function HomePage() {
   const [favoritoIds, setFavoritoIds] = useState<Set<string>>(new Set());
   const [emailUsuario, setEmailUsuario] = useState<string | null>(null);
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const [esAdmin, setEsAdmin] = useState(false);
 
   useEffect(() => {
     fetch("/api/peliculas")
@@ -40,6 +42,11 @@ export default function HomePage() {
     supabase.auth.getUser().then(({ data }) => {
       setEmailUsuario(data.user?.email ?? null);
     });
+
+    fetch("/api/admin/check")
+      .then((res) => (res.ok ? res.json() : { isAdmin: false }))
+      .then((data) => setEsAdmin(Boolean(data.isAdmin)))
+      .catch(() => setEsAdmin(false));
 
     const onScroll = () => setNavScrolled(window.scrollY > 40);
     window.addEventListener("scroll", onScroll);
@@ -141,9 +148,11 @@ export default function HomePage() {
               {menuAbierto && (
                 <div className="absolute right-0 mt-2 w-48 bg-black/95 border border-white/10 rounded shadow-lg py-2 text-sm">
                   <p className="px-4 py-1.5 text-nf-gray-light truncate">{emailUsuario}</p>
-                  <Link href="/admin" className="block px-4 py-1.5 hover:bg-white/10">
-                    Panel admin
-                  </Link>
+                  {esAdmin && (
+                    <Link href="/admin" className="block px-4 py-1.5 hover:bg-white/10">
+                      Panel admin
+                    </Link>
+                  )}
                   <button
                     onClick={cerrarSesion}
                     className="block w-full text-left px-4 py-1.5 hover:bg-white/10 text-nf-red"
@@ -229,7 +238,7 @@ export default function HomePage() {
       </section>
 
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-nf-black border-t border-white/10 flex justify-around py-2 z-40">
-        {["Inicio", "Géneros", "Mi lista", "Promoción", "Mío"].map((item) => (
+        {(esAdmin ? ["Inicio", "Géneros", "Mi lista", "Promoción", "Mío"] : ["Inicio", "Géneros", "Mi lista", "Promoción"]).map((item) => (
           <button
             key={item}
             onClick={() => {

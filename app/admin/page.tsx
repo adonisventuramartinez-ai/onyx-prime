@@ -1,6 +1,7 @@
 "use client";
 
 export const dynamic = "force-dynamic";
+
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Pelicula } from "@/lib/db";
@@ -127,7 +128,10 @@ export default function AdminPage() {
 
   const totalPaginas = Math.max(1, Math.ceil(filtradas.length / POR_PAGINA));
   const paginaSegura = Math.min(pagina, totalPaginas);
-  const visibles = filtradas.slice((paginaSegura - 1) * POR_PAGINA, paginaSegura * POR_PAGINA);
+  const visibles = filtradas.slice(
+    (paginaSegura - 1) * POR_PAGINA,
+    paginaSegura * POR_PAGINA
+  );
 
   if (verificando) {
     return (
@@ -166,10 +170,16 @@ export default function AdminPage() {
           <p className="text-nf-gray-light text-sm">Gestiona el catálogo</p>
         </div>
         <div className="flex gap-3">
-          <Link href="/" className="bg-white/10 hover:bg-white/20 transition-colors px-4 py-2 rounded font-semibold text-sm">
+          <Link
+            href="/"
+            className="bg-white/10 hover:bg-white/20 transition-colors px-4 py-2 rounded font-semibold text-sm"
+          >
             Ver catálogo
           </Link>
-          <Link href="/agregar" className="bg-nf-red hover:bg-nf-red-hover transition-colors px-4 py-2 rounded font-semibold text-sm">
+          <Link
+            href="/agregar"
+            className="bg-nf-red hover:bg-nf-red-hover transition-colors px-4 py-2 rounded font-semibold text-sm"
+          >
             + Agregar manual
           </Link>
         </div>
@@ -269,7 +279,7 @@ export default function AdminPage() {
                     </button>
                   </td>
                   <td className="p-3 text-right space-x-3 whitespace-nowrap">
-                    <Link href={`/ver/${p.id}`} className="text-nf-gray-light hover:text-white text-xs">Ver</Link>
+                    <Link href={`/pelicula/${p.id}`} className="text-nf-gray-light hover:text-white text-xs">Ver</Link>
                     <button onClick={() => setEditando(p)} className="text-blue-400 hover:text-blue-300 text-xs">Editar</button>
                     <button
                       onClick={() => eliminar(p.id)}
@@ -308,13 +318,19 @@ export default function AdminPage() {
 
       {editando && (
         <div
-          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 px-4 py-8 overflow-y-auto"
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 px-2 sm:px-4 py-4 sm:py-8 overflow-y-auto"
           onClick={(e) => e.target === e.currentTarget && setEditando(null)}
         >
-          <div className="bg-nf-dark border border-white/10 rounded-lg p-6 md:p-8 w-full max-w-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold">Editar: {editando.titulo}</h2>
-              <button onClick={() => setEditando(null)} className="text-nf-gray-light hover:text-white text-2xl leading-none" aria-label="Cerrar">×</button>
+          <div className="bg-nf-dark border border-white/10 rounded-lg p-4 sm:p-6 md:p-8 w-full max-w-2xl max-h-[95vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h2 className="text-lg sm:text-xl font-bold pr-2 truncate">Editar: {editando.titulo}</h2>
+              <button
+                onClick={() => setEditando(null)}
+                className="text-nf-gray-light hover:text-white text-2xl leading-none w-8 h-8 flex items-center justify-center shrink-0 rounded hover:bg-white/10"
+                aria-label="Cerrar"
+              >
+                ×
+              </button>
             </div>
             <PeliculaForm inicial={editando} onGuardar={guardarEdicion} textoBoton="Guardar cambios" />
           </div>

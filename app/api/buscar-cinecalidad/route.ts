@@ -68,35 +68,69 @@ async function extraerPeliculaDesdeLink(link: string) {
 
     const html = await response.text();
 
+    // Extraer título - MEJORADO
     const tituloMatch = html.match(/<h1[^>]*>([^<]*)<\/h1>/i) ||
                         html.match(/<title>([^<]*)<\/title>/i);
-    const titulo = tituloMatch ? tituloMatch[1].trim().replace(" - Cinecalidad", "") : "Sin título";
+    let titulo = tituloMatch ? tituloMatch[1].trim() : "Sin título";
+    titulo = titulo.replace(" - Cinecalidad", "").trim();
 
+    // Extraer año
     const anioMatch = html.match(/\b(19\d{2}|20\d{2})\b/);
     const anio = anioMatch ? anioMatch[1] : "2024";
 
-    const imgMatch = html.match(/<img[^>]*src="([^"]*)"[^>]*class="[^"]*poster[^"]*"[^>]*>/i) ||
-                     html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]*)"[^>]*>/i) ||
-                     html.match(/<img[^>]*src="([^"]*)"[^>]*>/i);
-    const caratula = imgMatch ? imgMatch[1] : "";
+    // Extraer carátula - MEJORADO (filtra URLs válidas)
+    const imgMatches = [
+      ...html.matchAll(/<img[^>]*src="([^"]*)"[^>]*>/gi),
+      ...html.matchAll(/<meta[^>]*property="og:image"[^>]*content="([^"]*)"[^>]*>/gi),
+      ...html.matchAll(/<meta[^>]*name="twitter:image"[^>]*content="([^"]*)"[^>]*>/gi),
+    ];
+    
+    let caratula = "";
+    for (const match of imgMatches) {
+      const src = match[1];
+      if (src && 
+          !src.includes("data:image") && 
+          !src.includes("svg") &&
+          !src.includes("base64") &&
+          src.startsWith("http")) {
+        caratula = src;
+        break;
+      }
+    }
 
+    // Si no hay carátula, buscar en la página de búsqueda o usar fallback
+    if (!caratula) {
+      const posterMatch = html.match(/<img[^>]*class="[^"]*poster[^"]*"[^>]*src="([^"]*)"[^>]*>/i);
+      if (posterMatch) {
+        caratula = posterMatch[1];
+      }
+    }
+
+    // Extraer sinopsis
     const sinopsisMatch = html.match(/<p[^>]*class="[^"]*synopsis[^"]*"[^>]*>([^<]*)<\/p>/i) ||
                           html.match(/<meta[^>]*name="description"[^>]*content="([^"]*)"[^>]*>/i);
     const sinopsis = sinopsisMatch ? sinopsisMatch[1].trim() : "Sin sinopsis disponible";
 
+    // Extraer género
     const generoMatch = html.match(/<span[^>]*class="[^"]*genre[^"]*"[^>]*>([^<]*)<\/span>/i);
     const genero = generoMatch ? generoMatch[1].trim() : "Desconocido";
 
+    // Buscar link directo
     let linkDirecto = await obtenerLinkDirectoDesdePagina(html, link);
     if (!linkDirecto) linkDirecto = link;
     linkDirecto = limpiarLink(linkDirecto);
+
+    // Limpiar carátula
+    if (caratula && !caratula.startsWith("http")) {
+      caratula = `https://www.cinecalidad.am${caratula}`;
+    }
 
     return {
       titulo,
       anio,
       genero,
       sinopsis,
-      caratula: caratula.startsWith("http") ? caratula : `https://www.cinecalidad.am${caratula}`,
+      caratula,
       link_directo: linkDirecto,
       fuente: "auto",
     };
@@ -122,14 +156,18 @@ function extraerPeliculaDeBusqueda(html: string, nombreBuscado: string) {
       const tituloMatch = item.match(/<h[2-3][^>]*>([^<]*)<\/h[2-3]>/i) || 
                           item.match(/<span[^>]*class="[^"]*title[^"]*"[^>]*>([^<]*)<\/span>/i) ||
                           item.match(/<a[^>]*>([^<]*)<\/a>/i);
-      const titulo = tituloMatch ? tituloMatch[1].trim() : nombreBuscado;
+      let titulo = tituloMatch ? tituloMatch[1].trim() : nombreBuscado;
+      titulo = titulo.replace(" - Cinecalidad", "").trim();
 
       if (titulo && titulo.length > 3) {
         const anioMatch = item.match(/\b(19\d{2}|20\d{2})\b/);
         const anio = anioMatch ? anioMatch[1] : "2024";
 
         const imgMatch = item.match(/<img[^>]*src="([^"]*)"[^>]*>/i);
-        const caratula = imgMatch ? imgMatch[1] : "";
+        let caratula = imgMatch ? imgMatch[1] : "";
+        if (caratula && !caratula.startsWith("http")) {
+          caratula = `https://www.cinecalidad.am${caratula}`;
+        }
 
         const linkMatch = item.match(/<a[^>]*href="([^"]*)"[^>]*>/i);
         const link = linkMatch ? linkMatch[1] : "";
@@ -148,7 +186,7 @@ function extraerPeliculaDeBusqueda(html: string, nombreBuscado: string) {
           anio,
           genero,
           sinopsis,
-          caratula: caratula.startsWith("http") ? caratula : `https://www.cinecalidad.am${caratula}`,
+          caratula,
           link_directo: linkDirecto,
           fuente: "auto",
         };

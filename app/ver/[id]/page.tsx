@@ -1,14 +1,15 @@
 "use client";
 
 export const dynamic = "force-dynamic";
+
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
-import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
 import type { Pelicula } from "@/lib/db";
 import { CARATULA_FALLBACK } from "@/lib/db";
 
 export default function VerPeliculaPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
   const historialRegistrado = useRef(false);
 
@@ -20,7 +21,6 @@ export default function VerPeliculaPage() {
   const [progreso, setProgreso] = useState(0);
   const [duracion, setDuracion] = useState(0);
   const [volumen, setVolumen] = useState(1);
-  const [enLista, setEnLista] = useState(false);
 
   useEffect(() => {
     fetch(`/api/peliculas/${id}`)
@@ -36,26 +36,7 @@ export default function VerPeliculaPage() {
         setError("No pudimos encontrar esta película.");
         setCargando(false);
       });
-
-    fetch("/api/favoritos")
-      .then((res) => (res.ok ? res.json() : []))
-      .then((ids: string[]) => setEnLista(ids.includes(id)))
-      .catch(() => {});
   }, [id]);
-
-  const toggleMiLista = async () => {
-    const yaEsta = enLista;
-    setEnLista(!yaEsta);
-    if (yaEsta) {
-      await fetch(`/api/favoritos?pelicula_id=${id}`, { method: "DELETE" }).catch(() => {});
-    } else {
-      await fetch("/api/favoritos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pelicula_id: id }),
-      }).catch(() => {});
-    }
-  };
 
   const registrarHistorial = () => {
     if (historialRegistrado.current) return;
@@ -87,16 +68,6 @@ export default function VerPeliculaPage() {
     return `${m}:${s}`;
   };
 
-  const compartir = async () => {
-    const url = window.location.href;
-    if (navigator.share) {
-      navigator.share({ title: pelicula?.titulo, url }).catch(() => {});
-    } else {
-      await navigator.clipboard.writeText(url);
-      alert("Enlace copiado al portapapeles");
-    }
-  };
-
   if (cargando) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -109,9 +80,12 @@ export default function VerPeliculaPage() {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4 text-center px-4">
         <p className="text-xl font-semibold">{error || "Película no disponible"}</p>
-        <Link href="/" className="bg-nf-red hover:bg-nf-red-hover transition-colors px-6 py-2.5 rounded font-semibold">
+        <button
+          onClick={() => router.push("/")}
+          className="bg-nf-red hover:bg-nf-red-hover transition-colors px-6 py-2.5 rounded font-semibold"
+        >
           Volver al inicio
-        </Link>
+        </button>
       </div>
     );
   }
@@ -119,17 +93,17 @@ export default function VerPeliculaPage() {
   const tieneLink = Boolean(pelicula.link_directo);
 
   return (
-    <main className="min-h-screen bg-black">
-      <Link
-        href="/"
+    <main className="min-h-screen bg-black flex flex-col">
+      <button
+        onClick={() => router.push(`/pelicula/${id}`)}
         className="fixed top-4 left-4 z-30 bg-black/60 hover:bg-black/80 transition-colors rounded-full w-9 h-9 flex items-center justify-center text-lg"
-        aria-label="Volver"
+        aria-label="Volver a la ficha"
       >
         ←
-      </Link>
+      </button>
 
       <div
-        className="relative w-full aspect-video bg-black group"
+        className="relative w-full flex-1 bg-black group flex items-center justify-center"
         onMouseMove={() => setMostrarControles(true)}
         onMouseLeave={() => reproduciendo && setMostrarControles(false)}
       >
@@ -139,31 +113,33 @@ export default function VerPeliculaPage() {
               ref={videoRef}
               src={pelicula.link_directo}
               poster={pelicula.caratula || CARATULA_FALLBACK}
-              className="w-full h-full"
+              className="w-full h-full max-h-screen"
               onClick={togglePlay}
               onPlay={() => { setReproduciendo(true); registrarHistorial(); }}
               onPause={() => setReproduciendo(false)}
               onTimeUpdate={(e) => setProgreso(e.currentTarget.currentTime)}
               onLoadedMetadata={(e) => setDuracion(e.currentTarget.duration)}
               onVolumeChange={(e) => setVolumen(e.currentTarget.volume)}
+              autoPlay
             />
 
             <div
-              className={`absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-transparent to-black/40 transition-opacity duration-300 ${
+              className={`absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-transparent to-black/40 transition-opacity duration-300 pointer-events-none ${
                 mostrarControles ? "opacity-100" : "opacity-0"
               }`}
             >
               {!reproduciendo && (
                 <button
                   onClick={togglePlay}
-                  className="absolute inset-0 m-auto w-16 h-16 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center transition-colors"
+                  className="absolute inset-0 m-auto w-16 h-16 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center transition-colors pointer-events-auto"
                   aria-label="Reproducir"
                 >
                   <PlayIcon />
                 </button>
               )}
 
-              <div className="px-4 md:px-8 pb-4 space-y-2">
+              <div className="px-4 md:px-8 pb-6 space-y-2 pointer-events-auto">
+                <p className="text-sm md:text-base font-semibold mb-1">{pelicula.titulo}</p>
                 <input
                   type="range"
                   min={0}
@@ -220,37 +196,6 @@ export default function VerPeliculaPage() {
             </p>
           </div>
         )}
-      </div>
-
-      <div className="max-w-3xl mx-auto px-4 md:px-0 py-8 space-y-4">
-        <h1 className="text-2xl md:text-4xl font-bold">{pelicula.titulo}</h1>
-        <div className="flex items-center gap-3 text-sm text-gray-300">
-          <span>{pelicula.anio}</span>
-          <span className="border border-white/30 px-1.5 rounded text-xs">{pelicula.genero}</span>
-        </div>
-        <p className="text-gray-200 leading-relaxed">{pelicula.sinopsis}</p>
-
-        <div className="flex flex-wrap gap-3 pt-2">
-          <button
-            onClick={togglePlay}
-            disabled={!tieneLink}
-            className="flex items-center gap-2 bg-white text-black px-5 py-2 rounded font-semibold hover:bg-white/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <PlayIcon small /> Reproducir
-          </button>
-          <button
-            onClick={toggleMiLista}
-            className="flex items-center gap-2 bg-gray-700/60 px-5 py-2 rounded font-semibold hover:bg-gray-700 transition-colors"
-          >
-            {enLista ? "✓ En mi lista" : "+ Mi lista"}
-          </button>
-          <button
-            onClick={compartir}
-            className="flex items-center gap-2 bg-gray-700/60 px-5 py-2 rounded font-semibold hover:bg-gray-700 transition-colors"
-          >
-            Compartir
-          </button>
-        </div>
       </div>
     </main>
   );

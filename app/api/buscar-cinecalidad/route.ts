@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// API Key pública de TMDB (puedes usar la tuya)
+const TMDB_API_KEY = "528f5aaebfb0c656e0974c07c3cba128";
+
 export async function GET(req: NextRequest) {
   const nombre = req.nextUrl.searchParams.get("nombre");
   const linkDirectoProporcionado = req.nextUrl.searchParams.get("link");
 
+  // Si el usuario pegó un link directo de Cinecalidad
   if (linkDirectoProporcionado) {
     try {
-      const pelicula = await extraerPeliculaDesdeLink(linkDirectoProporcionado);
+      const pelicula = await extraerDeCinecalidad(linkDirectoProporcionado);
       if (pelicula) return NextResponse.json({ pelicula });
     } catch (error) {
       console.error("Error al extraer desde link:", error);
@@ -14,38 +18,69 @@ export async function GET(req: NextRequest) {
   }
 
   if (!nombre) {
-    return NextResponse.json({ error: "Nombre de película o link requerido" }, { status: 400 });
+    return NextResponse.json({ error: "Nombre de película requerido" }, { status: 400 });
   }
 
   try {
-    const searchUrl = `https://www.cinecalidad.am/?s=${encodeURIComponent(nombre)}`;
-    const response = await fetch(searchUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Accept": "text/html,application/xhtml+xml",
-        "Referer": "https://www.cinecalidad.am/",
-      },
-    });
+    // ========================================
+    // PASO 1: BUSCAR EN TMDB (datos confiables)
+    // ========================================
+    const tmdbRes = await fetch(
+      `https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(nombre)}&language=es-ES`
+    );
 
-    if (!response.ok) {
-      return NextResponse.json({ error: "No se pudo acceder a Cinecalidad" }, { status: 404 });
+    if (!tmdbRes.ok) {
+      return NextResponse.json({ error: "Error al buscar en TMDB" }, { status: 500 });
     }
 
-    const html = await response.text();
-    let pelicula = extraerPeliculaDeBusqueda(html, nombre);
+    const tmdbData = await tmdbRes.json();
 
-    if (!pelicula) {
-      const linkGenerado = `https://www.cinecalidad.am/ver-pelicula/${nombre.toLowerCase().replace(/ /g, "-")}/`;
-      pelicula = await extraerPeliculaDesdeLink(linkGenerado);
+    if (!tmdbData.results || tmdbData.results.length === 0) {
+      return NextResponse.json({ error: "No se encontró la película en TMDB" }, { status: 404 });
     }
 
-    if (!pelicula) {
-      return NextResponse.json({ error: "No se encontró la película en Cinecalidad" }, { status: 404 });
+    const movie = tmdbData.results[0];
+
+    // ========================================
+    // PASO 2: BUSCAR LINK EN CINECALIDAD
+    // ========================================
+    let linkCinecalidad = "";
+    const searchUrl = `https://www.cinecalidad.am/?s=${encodeURIComponent(movie.title)}`;
+    
+    try {
+      const res = await fetch(searchUrl, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        },
+      });
+
+      if (res.ok) {
+        const html = await res.text();
+        // Buscar el primer resultado
+        const linkMatch = html.match(/<a[^>]*href="([^"]*)"[^>]*>[\s\S]*?<img[^>]*src="[^"]*"[^>]*>/i);
+        if (linkMatch) {
+          const link = linkMatch[1];
+          linkCinecalidad = link.startsWith("http") ? link : `https://www.cinecalidad.am${link}`;
+        }
+      }
+    } catch (error) {
+      console.log("Error al buscar en Cinecalidad:", error);
     }
 
-    if (pelicula.link_directo) {
-      pelicula.link_directo = limpiarLink(pelicula.link_directo);
-    }
+    // ========================================
+    // PASO 3: CONSTRUIR RESULTADO
+    // ========================================
+    const pelicula = {
+      titulo: movie.title,
+      anio: movie.release_date ? movie.release_date.split("-")[0] : "2024",
+      genero: "Desconocido",
+      sinopsis: movie.overview || "Sin sinopsis disponible",
+      caratula: movie.poster_path 
+        ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` 
+        : "",
+      link_directo: linkCinecalidad || `https://www.cinecalidad.am/ver-pelicula/${movie.title.toLowerCase().replace(/ /g, "-")}/`,
+      fuente: "auto",
+    };
 
     return NextResponse.json({ pelicula });
 
@@ -55,236 +90,55 @@ export async function GET(req: NextRequest) {
   }
 }
 
-async function extraerPeliculaDesdeLink(link: string) {
+// ========================================
+// EXTRAER DESDE CINECALIDAD (por link)
+// ========================================
+async function extraerDeCinecalidad(link: string) {
   try {
-    const response = await fetch(link, {
+    const res = await fetch(link, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Referer": "https://www.cinecalidad.am/",
       },
     });
 
-    if (!response.ok) return null;
+    if (!res.ok) return null;
+    const html = await res.text();
 
-    const html = await response.text();
+    // Título
+    let titulo = "Sin título";
+    const tMatch = html.match(/<h1[^>]*>([^<]*)<\/h1>/i) || html.match(/<title>([^<]*)<\/title>/i);
+    if (tMatch) {
+      titulo = tMatch[1].replace(" - Cinecalidad", "").trim();
+    }
 
-    // Extraer título - MEJORADO
-    const tituloMatch = html.match(/<h1[^>]*>([^<]*)<\/h1>/i) ||
-                        html.match(/<title>([^<]*)<\/title>/i);
-    let titulo = tituloMatch ? tituloMatch[1].trim() : "Sin título";
-    titulo = titulo.replace(" - Cinecalidad", "").trim();
+    // Año
+    let anio = "2024";
+    const aMatch = html.match(/\b(19\d{2}|20\d{2})\b/);
+    if (aMatch) anio = aMatch[1];
 
-    // Extraer año
-    const anioMatch = html.match(/\b(19\d{2}|20\d{2})\b/);
-    const anio = anioMatch ? anioMatch[1] : "2024";
-
-    // Extraer carátula - MEJORADO (filtra URLs válidas)
-    const imgMatches = [
-      ...html.matchAll(/<img[^>]*src="([^"]*)"[^>]*>/gi),
-      ...html.matchAll(/<meta[^>]*property="og:image"[^>]*content="([^"]*)"[^>]*>/gi),
-      ...html.matchAll(/<meta[^>]*name="twitter:image"[^>]*content="([^"]*)"[^>]*>/gi),
-    ];
-    
+    // Carátula
     let caratula = "";
-    for (const match of imgMatches) {
-      const src = match[1];
-      if (src && 
-          !src.includes("data:image") && 
-          !src.includes("svg") &&
-          !src.includes("base64") &&
-          src.startsWith("http")) {
-        caratula = src;
-        break;
-      }
+    const imgMatch = html.match(/<img[^>]*src="([^"]*)"[^>]*>/i);
+    if (imgMatch && !imgMatch[1].includes("data:image")) {
+      caratula = imgMatch[1];
     }
 
-    // Si no hay carátula, buscar en la página de búsqueda o usar fallback
-    if (!caratula) {
-      const posterMatch = html.match(/<img[^>]*class="[^"]*poster[^"]*"[^>]*src="([^"]*)"[^>]*>/i);
-      if (posterMatch) {
-        caratula = posterMatch[1];
-      }
-    }
-
-    // Extraer sinopsis
-    const sinopsisMatch = html.match(/<p[^>]*class="[^"]*synopsis[^"]*"[^>]*>([^<]*)<\/p>/i) ||
-                          html.match(/<meta[^>]*name="description"[^>]*content="([^"]*)"[^>]*>/i);
-    const sinopsis = sinopsisMatch ? sinopsisMatch[1].trim() : "Sin sinopsis disponible";
-
-    // Extraer género
-    const generoMatch = html.match(/<span[^>]*class="[^"]*genre[^"]*"[^>]*>([^<]*)<\/span>/i);
-    const genero = generoMatch ? generoMatch[1].trim() : "Desconocido";
-
-    // Buscar link directo
-    let linkDirecto = await obtenerLinkDirectoDesdePagina(html, link);
-    if (!linkDirecto) linkDirecto = link;
-    linkDirecto = limpiarLink(linkDirecto);
-
-    // Limpiar carátula
-    if (caratula && !caratula.startsWith("http")) {
-      caratula = `https://www.cinecalidad.am${caratula}`;
-    }
+    // Sinopsis
+    let sinopsis = "Sin sinopsis disponible";
+    const sMatch = html.match(/<p[^>]*>([^<]*)<\/p>/i) || html.match(/<meta[^>]*name="description"[^>]*content="([^"]*)"[^>]*>/i);
+    if (sMatch) sinopsis = sMatch[1].trim();
 
     return {
       titulo,
       anio,
-      genero,
+      genero: "Desconocido",
       sinopsis,
-      caratula,
-      link_directo: linkDirecto,
+      caratula: caratula.startsWith("http") ? caratula : `https://www.cinecalidad.am${caratula}`,
+      link_directo: link,
       fuente: "auto",
     };
 
   } catch (error) {
-    console.error("Error al extraer desde link:", error);
     return null;
   }
-}
-
-function extraerPeliculaDeBusqueda(html: string, nombreBuscado: string) {
-  const patrones = [
-    /<article[^>]*class="[^"]*movie-item[^"]*"[^>]*>([\s\S]*?)<\/article>/i,
-    /<div[^>]*class="[^"]*movie[^"]*"[^>]*>([\s\S]*?)<\/div>/i,
-    /<li[^>]*class="[^"]*movie[^"]*"[^>]*>([\s\S]*?)<\/li>/i,
-  ];
-
-  for (const patron of patrones) {
-    const match = patron.exec(html);
-    if (match) {
-      const item = match[1];
-      
-      const tituloMatch = item.match(/<h[2-3][^>]*>([^<]*)<\/h[2-3]>/i) || 
-                          item.match(/<span[^>]*class="[^"]*title[^"]*"[^>]*>([^<]*)<\/span>/i) ||
-                          item.match(/<a[^>]*>([^<]*)<\/a>/i);
-      let titulo = tituloMatch ? tituloMatch[1].trim() : nombreBuscado;
-      titulo = titulo.replace(" - Cinecalidad", "").trim();
-
-      if (titulo && titulo.length > 3) {
-        const anioMatch = item.match(/\b(19\d{2}|20\d{2})\b/);
-        const anio = anioMatch ? anioMatch[1] : "2024";
-
-        const imgMatch = item.match(/<img[^>]*src="([^"]*)"[^>]*>/i);
-        let caratula = imgMatch ? imgMatch[1] : "";
-        if (caratula && !caratula.startsWith("http")) {
-          caratula = `https://www.cinecalidad.am${caratula}`;
-        }
-
-        const linkMatch = item.match(/<a[^>]*href="([^"]*)"[^>]*>/i);
-        const link = linkMatch ? linkMatch[1] : "";
-
-        const sinopsisMatch = item.match(/<p[^>]*class="[^"]*synopsis[^"]*"[^>]*>([^<]*)<\/p>/i);
-        const sinopsis = sinopsisMatch ? sinopsisMatch[1].trim() : "Sin sinopsis disponible";
-
-        const generoMatch = item.match(/<span[^>]*class="[^"]*genre[^"]*"[^>]*>([^<]*)<\/span>/i);
-        const genero = generoMatch ? generoMatch[1].trim() : "Desconocido";
-
-        let linkDirecto = link ? (link.startsWith("http") ? link : `https://www.cinecalidad.am${link}`) : "";
-        linkDirecto = limpiarLink(linkDirecto);
-
-        return {
-          titulo,
-          anio,
-          genero,
-          sinopsis,
-          caratula,
-          link_directo: linkDirecto,
-          fuente: "auto",
-        };
-      }
-    }
-  }
-
-  return null;
-}
-
-async function obtenerLinkDirectoDesdePagina(html: string, urlBase: string): Promise<string | null> {
-  const patrones = [
-    /<a[^>]*href="(https?:\/\/[^"]*\.(mp4|mkv|avi|mov|webm|m3u8|mpd)[^"]*)"[^>]*>/gi,
-    /<a[^>]*class="[^"]*download[^"]*"[^>]*href="([^"]*)"[^>]*>/gi,
-    /<a[^>]*href="(https?:\/\/(mega\.nz|mediafire\.com|drive\.google\.com)[^"]*)"[^>]*>/gi,
-    /<source[^>]*src="([^"]*)"[^>]*>/gi,
-    /<iframe[^>]*src="(https?:\/\/[^"]*)"[^>]*>/gi,
-    /<video[^>]*src="([^"]*)"[^>]*>/gi,
-    /<a[^>]*href="(https?:\/\/[^"]*\/download\/[^"]*)"[^>]*>/gi,
-  ];
-
-  for (const patron of patrones) {
-    const regex = new RegExp(patron);
-    let match;
-    while ((match = regex.exec(html)) !== null) {
-      const link = match[1];
-      if (link && 
-          !link.includes("anuncio") && 
-          !link.includes("ad") &&
-          !link.includes("google") &&
-          !link.includes("facebook") &&
-          !link.includes("twitter") &&
-          !link.includes("instagram") &&
-          !link.includes("pinterest") &&
-          !link.includes("youtube") &&
-          !link.includes("whatsapp") &&
-          !link.includes("telegram") &&
-          !link.includes("redirect") &&
-          !link.includes("click") &&
-          !link.includes("popup") &&
-          !link.includes("banner") &&
-          !link.includes("out.php") &&
-          !link.includes("go.php")) {
-        return limpiarLink(link);
-      }
-    }
-  }
-
-  return null;
-}
-
-function limpiarLink(link: string): string {
-  if (!link) return "";
-
-  const parametrosBasura = [
-    'utm_', 'ref=', 'source=', 'campaign=', 'medium=',
-    'affiliate', 'affid=', 'partner=', 'promo=', 'click=',
-    'redirect=', 'ad=', 'banner=', 'popup=', 'fbclid=',
-    'tracking', 'analytics', 'campaign', 'source', 'medium',
-    'term', 'content', 'placement', 'network', 'device'
-  ];
-
-  let linkLimpio = link;
-
-  if (linkLimpio.includes('redirect') || linkLimpio.includes('go/') || linkLimpio.includes('out.php')) {
-    const match = linkLimpio.match(/(https?:\/\/[^?&]*)/);
-    if (match) {
-      linkLimpio = match[1];
-    }
-  }
-
-  try {
-    const url = new URL(linkLimpio);
-    const params = url.searchParams;
-    const paramsAEliminar = [];
-    
-    for (const key of params.keys()) {
-      for (const basura of parametrosBasura) {
-        if (key.toLowerCase().includes(basura.toLowerCase())) {
-          paramsAEliminar.push(key);
-          break;
-        }
-      }
-    }
-    
-    paramsAEliminar.forEach(key => params.delete(key));
-    linkLimpio = url.toString();
-  } catch (e) {
-    for (const basura of parametrosBasura) {
-      const regex = new RegExp(`[?&]${basura}[^&]*&?`, 'gi');
-      linkLimpio = linkLimpio.replace(regex, '');
-    }
-    linkLimpio = linkLimpio.replace(/\?$/, '').replace(/&$/, '');
-  }
-
-  if (linkLimpio.includes('#')) {
-    linkLimpio = linkLimpio.split('#')[0];
-  }
-
-  return linkLimpio;
 }

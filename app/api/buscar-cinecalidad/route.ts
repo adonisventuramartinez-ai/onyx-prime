@@ -7,7 +7,6 @@ export async function GET(req: NextRequest) {
   const nombre = req.nextUrl.searchParams.get("nombre");
   const linkDirectoProporcionado = req.nextUrl.searchParams.get("link");
 
-  // Si el usuario pegó un link directo de Cinecalidad
   if (linkDirectoProporcionado) {
     try {
       const pelicula = await extraerDeCinecalidad(linkDirectoProporcionado);
@@ -23,7 +22,7 @@ export async function GET(req: NextRequest) {
 
   try {
     // ========================================
-    // BUSCAR EN TMDB CON TU API KEY
+    // BUSCAR EN TMDB
     // ========================================
     const tmdbRes = await fetch(
       `https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(nombre)}&language=es-ES`
@@ -70,15 +69,16 @@ export async function GET(req: NextRequest) {
     }
 
     // ========================================
-    // CONSTRUIR RESULTADO
+    // CONSTRUIR RESULTADO CON IMAGEN HD
     // ========================================
     const pelicula = {
       titulo: movie.title,
       anio: movie.release_date ? movie.release_date.split("-")[0] : "2024",
       genero: movie.genres?.[0]?.name || "Desconocido",
       sinopsis: movie.overview || "Sin sinopsis disponible",
+      // 🖼️ IMAGEN HD: Usamos "original" para la mejor calidad
       caratula: movie.poster_path 
-        ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` 
+        ? `https://image.tmdb.org/t/p/original${movie.poster_path}` 
         : "",
       link_directo: linkCinecalidad || `https://www.cinecalidad.am/ver-pelicula/${movie.title.toLowerCase().replace(/ /g, "-")}/`,
       fuente: "auto",

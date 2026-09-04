@@ -182,7 +182,7 @@ export default function AgregarAutoPage() {
         {cargando && (
           <div className="text-center py-12">
             <Loader2 className="w-12 h-12 animate-spin text-purple-400 mx-auto mb-4" />
-            <p className="text-gray-400">Buscando en Cinecalidad...</p>
+            <p className="text-gray-400">Buscando en TMDB y Cinecalidad...</p>
           </div>
         )}
 

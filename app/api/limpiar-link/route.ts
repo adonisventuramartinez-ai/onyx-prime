@@ -27,7 +27,11 @@ async function limpiarLink(url: string) {
     });
 
     if (!res.ok) {
-      return { original: url, link_directo: null, mensaje: "No se pudo acceder a la página" };
+      return { 
+        original: url, 
+        link_directo: null, 
+        mensaje: "No se pudo acceder a la página" 
+      };
     }
 
     const html = await res.text();
@@ -36,6 +40,7 @@ async function limpiarLink(url: string) {
       .map(l => limpiarParametros(l))
       .filter(l => esLinkValido(l));
 
+    // Prioridad: MP4 > M3U8 > WEBM > MKV > otros
     const prioridad = ['mp4', 'm3u8', 'webm', 'mkv', 'avi', 'mov'];
     let mejorLink = null;
     let mejorPrioridad = 999;
@@ -57,11 +62,15 @@ async function limpiarLink(url: string) {
       original: url,
       link_directo: mejorLink,
       todos_los_links: linksLimpios,
-      mensaje: mejorLink ? "Link directo encontrado" : "No se encontró link de video"
+      mensaje: mejorLink ? "✅ Link directo encontrado" : "❌ No se encontró link de video"
     };
 
   } catch (error) {
-    return { original: url, link_directo: null, mensaje: "Error al procesar" };
+    return { 
+      original: url, 
+      link_directo: null, 
+      mensaje: "Error al procesar" 
+    };
   }
 }
 

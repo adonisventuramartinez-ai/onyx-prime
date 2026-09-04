@@ -18,14 +18,11 @@ export async function GET(req: NextRequest) {
 
 async function limpiarLink(url: string) {
   try {
-    // ========================================
-    // PASO 1: OBTENER HTML DE LA PÁGINA
-    // ========================================
     const res = await fetch(url, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         "Accept": "text/html,application/xhtml+xml",
-        "Referer": "https://vimeos.net/",
+        "Referer": "https://www.cinecalidad.am/",
       },
     });
 
@@ -38,32 +35,34 @@ async function limpiarLink(url: string) {
     }
 
     const html = await res.text();
-    console.log("HTML obtenido, longitud:", html.length);
-    
-    // ========================================
-    // PASO 2: EXTRAER LINK DE VIDEO
-    // ========================================
-    const links = extraerLinksDeVideo(html);
-    console.log("Links encontrados:", links);
-
-    // ========================================
-    // PASO 3: LIMPIAR Y FILTRAR LINKS
-    // ========================================
+    const links = extraerTodosLosLinks(html);
     const linksLimpios = links
       .map(l => limpiarParametros(l))
       .filter(l => esLinkValido(l));
 
-    console.log("Links limpios:", linksLimpios);
+    // Buscar específicamente en servidores conocidos
+    const servidores = {
+      'vimeos.net': extraerDeVimeos(html),
+      'goodstream.one': extraerDeGoodstream(html),
+      'voe.sx': extraerDeVoe(html),
+      'doodstream.com': extraerDeDoodstream(html),
+      'videoapp.zip': extraerDeVideoapp(html),
+    };
 
-    // ========================================
-    // PASO 4: SELECCIONAR EL MEJOR LINK
-    // ========================================
-    // Prioridad: MP4 > M3U8 > WEBM > MKV > otros
+    // Combinar todos los links
+    const todosLosLinks = [...linksLimpios];
+    for (const key in servidores) {
+      if (servidores[key as keyof typeof servidores]) {
+        todosLosLinks.push(servidores[key as keyof typeof servidores]!);
+      }
+    }
+
+    // Seleccionar el mejor link
     const prioridad = ['mp4', 'm3u8', 'webm', 'mkv', 'avi', 'mov'];
     let mejorLink = null;
     let mejorPrioridad = 999;
 
-    for (const link of linksLimpios) {
+    for (const link of todosLosLinks) {
       const ext = link.split('.').pop()?.toLowerCase() || '';
       const idx = prioridad.indexOf(ext);
       if (idx !== -1 && idx < mejorPrioridad) {
@@ -72,25 +71,14 @@ async function limpiarLink(url: string) {
       }
     }
 
-    if (!mejorLink && linksLimpios.length > 0) {
-      mejorLink = linksLimpios[0];
-    }
-
-    // ========================================
-    // PASO 5: SI NO HAY LINK, BUSCAR EN REDIRECCIONES
-    // ========================================
-    if (!mejorLink) {
-      // Buscar enlaces ocultos en scripts
-      const scriptLinks = extraerLinksDeScripts(html);
-      if (scriptLinks.length > 0) {
-        mejorLink = scriptLinks[0];
-      }
+    if (!mejorLink && todosLosLinks.length > 0) {
+      mejorLink = todosLosLinks[0];
     }
 
     return {
       original: url,
       link_directo: mejorLink,
-      todos_los_links: linksLimpios,
+      todos_los_links: [...new Set(todosLosLinks)],
       mensaje: mejorLink ? "✅ Link directo encontrado" : "❌ No se encontró link de video"
     };
 
@@ -105,35 +93,23 @@ async function limpiarLink(url: string) {
 }
 
 // ========================================
-// FUNCIÓN: EXTRAER LINKS DE VIDEO (MEJORADA)
+// FUNCIÓN: EXTRAER TODOS LOS LINKS
 // ========================================
-function extraerLinksDeVideo(html: string): string[] {
+function extraerTodosLosLinks(html: string): string[] {
   const links: string[] = [];
   
   const patrones = [
-    // iframes
     /<iframe[^>]*src=["']([^"']*)["'][^>]*>/gi,
-    // videos
     /<video[^>]*src=["']([^"']*)["'][^>]*>/gi,
-    // sources
     /<source[^>]*src=["']([^"']*)["'][^>]*>/gi,
-    // links directos con extensión de video
     /href=["'](https?:\/\/[^"']*\.(mp4|m3u8|mkv|avi|mov|webm)[^"']*)["']/gi,
     /src=["'](https?:\/\/[^"']*\.(mp4|m3u8|mkv|avi|mov|webm)[^"']*)["']/gi,
-    // streaming
-    /src=["'](https?:\/\/[^"']*\/stream\/[^"']*)["']/gi,
-    /src=["'](https?:\/\/[^"']*\/embed\/[^"']*)["']/gi,
-    // Mega, MediaFire, Drive
-    /(https?:\/\/(mega\.nz|mediafire\.com|drive\.google\.com)[^"'\s]*)/gi,
-    // cualquier link con extensión de video
     /(https?:\/\/[^"'\s]*\.(mp4|m3u8|mkv|avi|mov|webm)[^"'\s]*)/gi,
-    // links de Vimeo directos
-    /(https?:\/\/[^"']*vimeo\.com[^"']*)/gi,
-    // links de Dailymotion
-    /(https?:\/\/[^"']*dailymotion\.com[^"']*)/gi,
-    // links de YouTube embebidos
-    /(https?:\/\/[^"']*youtube\.com\/embed[^"']*)/gi,
-    /(https?:\/\/[^"']*youtu\.be[^"']*)/gi,
+    /(https?:\/\/[^"']*\/embed\/[^"']*)/gi,
+    /(https?:\/\/[^"']*\/stream\/[^"']*)/gi,
+    /(https?:\/\/(mega\.nz|mediafire\.com|drive\.google\.com)[^"'\s]*)/gi,
+    // Scripts
+    /<script[^>]*>([\s\S]*?)<\/script>/gi,
   ];
 
   for (const patron of patrones) {
@@ -151,31 +127,50 @@ function extraerLinksDeVideo(html: string): string[] {
 }
 
 // ========================================
-// FUNCIÓN: EXTRAER LINKS DE SCRIPTS
+// FUNCIONES PARA SERVIDORES ESPECÍFICOS
 // ========================================
-function extraerLinksDeScripts(html: string): string[] {
-  const links: string[] = [];
-  
-  // Buscar en scripts
-  const scriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/gi;
-  let match;
-  while ((match = scriptRegex.exec(html)) !== null) {
-    const script = match[1];
-    // Buscar URLs de video en el script
-    const urlRegex = /(https?:\/\/[^"'\s]*\.(mp4|m3u8|mkv|avi|mov|webm)[^"'\s]*)/gi;
-    let urlMatch;
-    while ((urlMatch = urlRegex.exec(script)) !== null) {
-      if (urlMatch[1]) {
-        links.push(urlMatch[1]);
-      }
-    }
-  }
 
-  return [...new Set(links)];
+function extraerDeVimeos(html: string): string | null {
+  // Buscar el link real en vimeos.net
+  const match = html.match(/<iframe[^>]*src=["']([^"']*)["'][^>]*>/i);
+  if (match) return match[1];
+  return null;
+}
+
+function extraerDeGoodstream(html: string): string | null {
+  // Buscar el link real en goodstream.one
+  const match = html.match(/<source[^>]*src=["']([^"']*)["'][^>]*>/i) ||
+                html.match(/<video[^>]*src=["']([^"']*)["'][^>]*>/i);
+  if (match) return match[1];
+  return null;
+}
+
+function extraerDeVoe(html: string): string | null {
+  // Buscar el link real en voe.sx
+  const match = html.match(/<iframe[^>]*src=["']([^"']*)["'][^>]*>/i) ||
+                html.match(/window\.location\.href\s*=\s*["']([^"']*)["']/i);
+  if (match) return match[1];
+  return null;
+}
+
+function extraerDeDoodstream(html: string): string | null {
+  // Buscar el link real en doodstream.com
+  const match = html.match(/<video[^>]*src=["']([^"']*)["'][^>]*>/i) ||
+                html.match(/file\s*:\s*["']([^"']*)["']/i);
+  if (match) return match[1];
+  return null;
+}
+
+function extraerDeVideoapp(html: string): string | null {
+  // Buscar el link real en videoapp.zip
+  const match = html.match(/<iframe[^>]*src=["']([^"']*)["'][^>]*>/i) ||
+                html.match(/href=["']([^"']*\.(mp4|m3u8)[^"']*)["']/i);
+  if (match) return match[1];
+  return null;
 }
 
 // ========================================
-// FUNCIÓN: LIMPIAR PARÁMETROS BASURA
+// FUNCIÓN: LIMPIAR PARÁMETROS
 // ========================================
 function limpiarParametros(link: string): string {
   const parametrosBasura = [
@@ -212,7 +207,7 @@ function limpiarParametros(link: string): string {
 }
 
 // ========================================
-// FUNCIÓN: VALIDAR LINK (SIN ANUNCIOS)
+// FUNCIÓN: VALIDAR LINK
 // ========================================
 function esLinkValido(link: string): boolean {
   const excluir = [

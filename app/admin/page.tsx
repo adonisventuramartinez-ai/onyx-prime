@@ -7,6 +7,7 @@ import Link from "next/link";
 import type { Pelicula } from "@/lib/db";
 import { CARATULA_FALLBACK } from "@/lib/db";
 import PeliculaForm, { type DatosPelicula } from "@/components/PeliculaForm";
+import { Loader2, Sparkles, Copy, CheckCircle, AlertCircle } from "lucide-react";
 
 const POR_PAGINA = 8;
 
@@ -25,6 +26,17 @@ export default function AdminPage() {
   const [filtroGenero, setFiltroGenero] = useState("todos");
   const [orden, setOrden] = useState<"reciente" | "titulo" | "anio">("reciente");
   const [pagina, setPagina] = useState(1);
+
+  // ========================================
+  // ESTADO PARA EL LIMPIADOR DE LINKS
+  // ========================================
+  const [linkInput, setLinkInput] = useState("");
+  const [linkLimpio, setLinkLimpio] = useState("");
+  const [linkLimpioLista, setLinkLimpioLista] = useState<string[]>([]);
+  const [limpiando, setLimpiando] = useState(false);
+  const [limpiadoExitoso, setLimpiadoExitoso] = useState(false);
+  const [copiado, setCopiado] = useState(false);
+  const [errorLimpiador, setErrorLimpiador] = useState("");
 
   useEffect(() => {
     fetch("/api/admin/check")
@@ -51,6 +63,48 @@ export default function AdminPage() {
         setCargando(false);
       })
       .catch(() => setCargando(false));
+  };
+
+  // ========================================
+  // FUNCIÓN: LIMPIAR LINK
+  // ========================================
+  const limpiarLink = async () => {
+    if (!linkInput.trim()) {
+      setErrorLimpiador("Pega un link para limpiar");
+      return;
+    }
+
+    setLimpiando(true);
+    setLinkLimpio("");
+    setLinkLimpioLista([]);
+    setLimpiadoExitoso(false);
+    setErrorLimpiador("");
+    setCopiado(false);
+
+    try {
+      const res = await fetch(`/api/limpiar-link?url=${encodeURIComponent(linkInput.trim())}`);
+      const data = await res.json();
+
+      if (data.link_directo) {
+        setLinkLimpio(data.link_directo);
+        setLinkLimpioLista(data.todos_los_links || []);
+        setLimpiadoExitoso(true);
+      } else {
+        setErrorLimpiador(data.mensaje || "No se encontró link de video");
+      }
+    } catch (err) {
+      setErrorLimpiador("Error al limpiar el link");
+    } finally {
+      setLimpiando(false);
+    }
+  };
+
+  const copiarLink = () => {
+    if (linkLimpio) {
+      navigator.clipboard.writeText(linkLimpio);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    }
   };
 
   const eliminar = async (id: string) => {
@@ -191,6 +245,85 @@ export default function AdminPage() {
         </div>
       </div>
 
+      {/* ======================================== */}
+      {/* LIMPIADOR DE LINKS */}
+      {/* ======================================== */}
+      <div className="bg-white/5 border border-white/10 rounded-lg p-4 mb-8">
+        <div className="flex items-center gap-2 mb-3">
+          <Sparkles className="w-5 h-5 text-purple-400" />
+          <h2 className="text-lg font-semibold">🧹 Limpiador de Links</h2>
+          <span className="text-xs text-gray-500">(Extrae link directo de video)</span>
+        </div>
+        
+        <div className="flex flex-col sm:flex-row gap-3">
+          <input
+            type="text"
+            value={linkInput}
+            onChange={(e) => setLinkInput(e.target.value)}
+            placeholder="Pega cualquier link de Cinecalidad o página similar..."
+            className="flex-1 bg-black/30 border border-white/15 rounded-lg px-4 py-2.5 focus:border-purple-500 focus:outline-none transition-colors text-white placeholder-gray-500 text-sm"
+          />
+          <button
+            onClick={limpiarLink}
+            disabled={limpiando}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-lg font-semibold flex items-center gap-2 transition-colors disabled:opacity-50 whitespace-nowrap"
+          >
+            {limpiando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            {limpiando ? "Limpiando..." : "Limpiar link"}
+          </button>
+        </div>
+
+        {errorLimpiador && (
+          <div className="mt-3 text-red-400 text-sm flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" />
+            {errorLimpiador}
+          </div>
+        )}
+
+        {limpiadoExitoso && linkLimpio && (
+          <div className="mt-3 p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-purple-400 mb-1">✅ Link directo (sin anuncios):</p>
+                <p className="text-sm text-white truncate font-mono">{linkLimpio}</p>
+              </div>
+              <button
+                onClick={copiarLink}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 transition-colors whitespace-nowrap"
+              >
+                {copiado ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                {copiado ? "Copiado" : "Copiar"}
+              </button>
+            </div>
+            
+            {linkLimpioLista.length > 1 && (
+              <div className="mt-2">
+                <p className="text-xs text-gray-500">📋 Otros links encontrados:</p>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {linkLimpioLista.map((link, i) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        setLinkLimpio(link);
+                        navigator.clipboard.writeText(link);
+                        setCopiado(true);
+                        setTimeout(() => setCopiado(false), 2000);
+                      }}
+                      className="text-xs bg-white/5 hover:bg-white/10 px-2 py-1 rounded border border-white/10 truncate max-w-xs transition-colors"
+                    >
+                      {link}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ======================================== */}
+      {/* ESTADÍSTICAS */}
+      {/* ======================================== */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 max-w-2xl">
         <Stat label="Total" valor={total} />
         <Stat label="Manuales" valor={manual} />
@@ -198,6 +331,9 @@ export default function AdminPage() {
         <Stat label="Destacadas" valor={destacadas} />
       </div>
 
+      {/* ======================================== */}
+      {/* FILTROS Y TABLA */}
+      {/* ======================================== */}
       <div className="flex flex-wrap gap-3 mb-4">
         <input
           value={busqueda}

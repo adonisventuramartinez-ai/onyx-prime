@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type { Pelicula } from "@/lib/db";
 import { CARATULA_FALLBACK } from "@/lib/db";
+import { Loader2, Sparkles } from "lucide-react";
 
 export default function VerPeliculaPage() {
   const { id } = useParams<{ id: string }>();
@@ -22,21 +23,64 @@ export default function VerPeliculaPage() {
   const [duracion, setDuracion] = useState(0);
   const [volumen, setVolumen] = useState(1);
 
+  // Estado para la limpieza de links
+  const [limpiandoLink, setLimpiandoLink] = useState(false);
+  const [linkDirecto, setLinkDirecto] = useState("");
+  const [linkLimpioExitoso, setLinkLimpioExitoso] = useState(false);
+
   useEffect(() => {
     fetch(`/api/peliculas/${id}`)
       .then((res) => {
         if (!res.ok) throw new Error("No encontrada");
         return res.json();
       })
-      .then((data) => {
+      .then((data: Pelicula) => {
         setPelicula(data);
+        setLinkDirecto(data.link_directo || "");
         setCargando(false);
+
+        // Si tiene link de Cinecalidad, intentar limpiarlo automáticamente
+        if (data.link_directo && data.link_directo.includes("cinecalidad")) {
+          limpiarLink(data.link_directo);
+        }
       })
       .catch(() => {
         setError("No pudimos encontrar esta película.");
         setCargando(false);
       });
   }, [id]);
+
+  // ========================================
+  // FUNCIÓN: LIMPIAR LINK AUTOMÁTICAMENTE
+  // ========================================
+  const limpiarLink = async (url: string) => {
+    setLimpiandoLink(true);
+    setLinkLimpioExitoso(false);
+    
+    try {
+      const res = await fetch(`/api/limpiar-link?url=${encodeURIComponent(url)}`);
+      const data = await res.json();
+      
+      if (data.link_directo) {
+        setLinkDirecto(data.link_directo);
+        setLinkLimpioExitoso(true);
+        
+        // Guardar el link limpio en la base de datos
+        await fetch(`/api/peliculas/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ link_directo: data.link_directo }),
+        });
+        
+        // Actualizar la película en el estado
+        setPelicula(prev => prev ? { ...prev, link_directo: data.link_directo } : null);
+      }
+    } catch (error) {
+      console.error("Error al limpiar link:", error);
+    } finally {
+      setLimpiandoLink(false);
+    }
+  };
 
   const registrarHistorial = () => {
     if (historialRegistrado.current) return;
@@ -68,6 +112,14 @@ export default function VerPeliculaPage() {
     return `${m}:${s}`;
   };
 
+  // ========================================
+  // LIMPIAR LINK MANUALMENTE (BOTÓN)
+  // ========================================
+  const limpiarLinkManual = async () => {
+    if (!pelicula?.link_directo) return;
+    await limpiarLink(pelicula.link_directo);
+  };
+
   if (cargando) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -90,7 +142,7 @@ export default function VerPeliculaPage() {
     );
   }
 
-  const tieneLink = Boolean(pelicula.link_directo);
+  const tieneLink = Boolean(linkDirecto || pelicula.link_directo);
 
   return (
     <main className="min-h-screen bg-black flex flex-col">
@@ -107,11 +159,22 @@ export default function VerPeliculaPage() {
         onMouseMove={() => setMostrarControles(true)}
         onMouseLeave={() => reproduciendo && setMostrarControles(false)}
       >
+        {/* Mostrar estado de limpieza */}
+        {limpiandoLink && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/70">
+            <div className="text-center">
+              <Loader2 className="w-12 h-12 animate-spin text-purple-400 mx-auto" />
+              <p className="text-white mt-4 text-sm">Limpiando link de anuncios...</p>
+              <p className="text-gray-400 text-xs mt-1">Extrayendo link directo de reproducción</p>
+            </div>
+          </div>
+        )}
+
         {tieneLink ? (
           <>
             <video
               ref={videoRef}
-              src={pelicula.link_directo}
+              src={linkDirecto || pelicula.link_directo}
               poster={pelicula.caratula || CARATULA_FALLBACK}
               className="w-full h-full max-h-screen"
               onClick={togglePlay}
@@ -139,7 +202,26 @@ export default function VerPeliculaPage() {
               )}
 
               <div className="px-4 md:px-8 pb-6 space-y-2 pointer-events-auto">
-                <p className="text-sm md:text-base font-semibold mb-1">{pelicula.titulo}</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm md:text-base font-semibold">{pelicula.titulo}</p>
+                  <div className="flex items-center gap-2">
+                    {pelicula.link_directo?.includes("cinecalidad") && !linkLimpioExitoso && (
+                      <button
+                        onClick={limpiarLinkManual}
+                        disabled={limpiandoLink}
+                        className="flex items-center gap-1 bg-purple-600/50 hover:bg-purple-600 text-white text-xs px-3 py-1 rounded-full transition-colors disabled:opacity-50"
+                      >
+                        <Sparkles className="w-3 h-3" />
+                        {limpiandoLink ? "Limpiando..." : "Limpiar link"}
+                      </button>
+                    )}
+                    {linkLimpioExitoso && (
+                      <span className="text-xs text-green-400 flex items-center gap-1">
+                        ✅ Link limpio
+                      </span>
+                    )}
+                  </div>
+                </div>
                 <input
                   type="range"
                   min={0}
@@ -189,10 +271,10 @@ export default function VerPeliculaPage() {
               className="absolute inset-0 w-full h-full object-cover opacity-30"
             />
             <p className="relative text-lg font-semibold">
-              Esta película todavía no tiene un enlace de reproducción
+              Esta película no tiene un enlace de reproducción
             </p>
             <p className="relative text-nf-gray-light text-sm">
-              Añádelo desde el panel de administrador.
+              Agrega un link desde el panel de administrador.
             </p>
           </div>
         )}

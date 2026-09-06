@@ -60,13 +60,11 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) {
-      console.error("Error en POST /api/peliculas:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json(data, { status: 201 });
   } catch (error) {
-    console.error("Error en POST /api/peliculas:", error);
     return NextResponse.json({ error: "Cuerpo de la petición inválido" }, { status: 400 });
   }
 }

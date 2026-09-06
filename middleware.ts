@@ -5,8 +5,12 @@ import { NextResponse, type NextRequest } from "next/server";
 // RUTAS PÚBLICAS (NO REQUIEREN AUTENTICACIÓN)
 // ========================================
 const RUTAS_PUBLICAS = [
-  "/",                                    // 👈 Página principal
+  "/",
   "/login",
+  "/api/peliculas",
+  "/api/peliculas/",
+  "/api/favoritos",
+  "/api/admin/check",
   "/api/auth",
   "/api/scrapear-estrenos/worker",
   "/api/scrapear-estrenos",
@@ -41,14 +45,14 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
-  
+
   // Verificar si la ruta es pública
   const esRutaPublica = RUTAS_PUBLICAS.some((ruta) => {
     if (ruta === "/") return pathname === "/";
     return pathname.startsWith(ruta);
   });
 
-  // Redirigir a login si no está autenticado y la ruta no es pública
+  // Si no está autenticado y la ruta no es pública → redirigir a login
   if (!user && !esRutaPublica) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
@@ -56,7 +60,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Redirigir al home si está autenticado y va a login
+  // Si está autenticado y va a login → redirigir a home
   if (user && pathname === "/login") {
     const url = request.nextUrl.clone();
     url.pathname = "/";

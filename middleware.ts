@@ -7,11 +7,10 @@ import { NextResponse, type NextRequest } from "next/server";
 const RUTAS_PUBLICAS = [
   "/",
   "/login",
+  "/api/auth",
   "/api/peliculas",
-  "/api/peliculas/",
   "/api/favoritos",
   "/api/admin/check",
-  "/api/auth",
   "/api/scrapear-estrenos/worker",
   "/api/scrapear-estrenos",
   "/api/scrapear-estrenos/estado",
@@ -20,6 +19,15 @@ const RUTAS_PUBLICAS = [
 ];
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  
+  // ========================================
+  // SI ES UNA API, DEJARLA PASAR SIEMPRE
+  // ========================================
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({ request: { headers: request.headers } });
 
   const supabase = createServerClient(
@@ -44,15 +52,14 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const pathname = request.nextUrl.pathname;
-
-  // Verificar si la ruta es pública
+  // ========================================
+  // VERIFICAR RUTAS PÚBLICAS
+  // ========================================
   const esRutaPublica = RUTAS_PUBLICAS.some((ruta) => {
     if (ruta === "/") return pathname === "/";
     return pathname.startsWith(ruta);
   });
 
-  // Si no está autenticado y la ruta no es pública → redirigir a login
   if (!user && !esRutaPublica) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
@@ -60,7 +67,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Si está autenticado y va a login → redirigir a home
   if (user && pathname === "/login") {
     const url = request.nextUrl.clone();
     url.pathname = "/";
@@ -75,4 +81,4 @@ export const config = {
   matcher: [
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
-};
+}

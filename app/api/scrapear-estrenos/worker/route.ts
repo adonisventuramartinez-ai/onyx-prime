@@ -5,9 +5,7 @@ import { supabaseAdmin } from "@/lib/db";
 // CONFIGURACIÓN
 // ========================================
 const TMDB_API_KEY = process.env.TMDB_API_KEY || "67fff863bf6ae181cd30a3519662ea70";
-const FECHA_INICIO = "2026-01-01";
-const HOY = new Date().toISOString().split("T")[0];
-const LIMITE_POR_EJECUCION = 10; // Procesar de a 10 películas por ejecución
+const LIMITE_POR_EJECUCION = 10;
 
 // ========================================
 // WORKER PRINCIPAL
@@ -16,9 +14,7 @@ export async function GET() {
   try {
     console.log("🔄 Worker de scraping iniciado");
 
-    // ========================================
-    // BUSCAR UNA TAREA PENDIENTE
-    // ========================================
+    // Buscar una tarea pendiente
     const { data: tarea, error } = await supabaseAdmin
       .from("tareas_scraping")
       .select("*")
@@ -38,22 +34,16 @@ export async function GET() {
 
     console.log(`📋 Procesando tarea ${tarea.id}`);
 
-    // ========================================
-    // MARCAR COMO "PROCESANDO"
-    // ========================================
+    // Marcar como "procesando"
     await supabaseAdmin
       .from("tareas_scraping")
       .update({ estado: "procesando" })
       .eq("id", tarea.id);
 
-    // ========================================
-    // PROCESAR LAS PELÍCULAS
-    // ========================================
+    // Procesar las películas
     const resultado = await procesarPeliculas(tarea.id);
 
-    // ========================================
-    // ACTUALIZAR TAREA CON RESULTADOS
-    // ========================================
+    // Actualizar tarea con resultados
     await supabaseAdmin
       .from("tareas_scraping")
       .update({
@@ -69,10 +59,14 @@ export async function GET() {
 
     console.log(`✅ Tarea ${tarea.id} completada`);
 
+    // 👇 CORREGIDO: eliminamos mensaje duplicado
     return NextResponse.json({
-      mensaje: "Scraping completado",
       tarea_id: tarea.id,
-      ...resultado,
+      total_encontradas: resultado.total_encontradas,
+      nuevas: resultado.nuevas,
+      ya_existentes: resultado.ya_existentes,
+      errores: resultado.errores,
+      mensaje: resultado.mensaje,
     });
 
   } catch (error) {
@@ -91,16 +85,12 @@ async function procesarPeliculas(tareaId: number) {
   let totalEncontradas = 0;
 
   try {
-    // ========================================
-    // OBTENER PELÍCULAS DE TMDB (2026)
-    // ========================================
+    // Obtener películas de TMDB (2026)
     const peliculas = await obtenerPeliculasTMDB(2026);
     totalEncontradas = peliculas.length;
     console.log(`📋 Encontradas ${totalEncontradas} películas en TMDB (2026)`);
 
-    // ========================================
-    // FILTRAR SOLO ESTRENOS DE 2026
-    // ========================================
+    // Filtrar solo estrenos de 2026
     const estrenos2026 = peliculas.filter(p => {
       if (!p.release_date) return false;
       return new Date(p.release_date).getFullYear() === 2026;
@@ -108,9 +98,7 @@ async function procesarPeliculas(tareaId: number) {
 
     console.log(`🎬 ${estrenos2026.length} películas estrenadas en 2026`);
 
-    // ========================================
-    // PROCESAR CADA PELÍCULA (con límite)
-    // ========================================
+    // Procesar cada película (con límite)
     const totalAProcesar = Math.min(estrenos2026.length, LIMITE_POR_EJECUCION);
 
     for (let i = 0; i < totalAProcesar; i++) {
@@ -201,7 +189,7 @@ async function procesarPeliculas(tareaId: number) {
 async function obtenerPeliculasTMDB(año: number) {
   const peliculas = [];
   let pagina = 1;
-  const totalPaginas = 3; // Limitamos a 3 páginas para evitar timeout
+  const totalPaginas = 3;
 
   try {
     for (let i = 0; i < totalPaginas; i++) {

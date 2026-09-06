@@ -26,43 +26,47 @@ export default function HomePage() {
   const [esAdmin, setEsAdmin] = useState(false);
 
   useEffect(() => {
+    const cargarDatos = () => {
+      // Cargar películas
+      fetch("/api/peliculas")
+        .then((res) => {
+          if (!res.ok) throw new Error("Error al cargar películas");
+          return res.json();
+        })
+        .then((data) => {
+          const pelis = Array.isArray(data) ? data : data.peliculas || [];
+          setPeliculas(pelis);
+          setCargando(false);
+        })
+        .catch((err) => {
+          console.error("❌ Error al cargar películas:", err);
+          setCargando(false);
+        });
+
+      // Cargar favoritos
+      fetch("/api/favoritos")
+        .then((res) => (res.ok ? res.json() : []))
+        .then((ids: string[]) => setFavoritoIds(new Set(ids)))
+        .catch(() => {});
+
+      // Obtener usuario
+      supabase.auth.getUser().then(({ data }) => {
+        setEmailUsuario(data.user?.email ?? null);
+      });
+
+      // Verificar si es admin
+      fetch("/api/admin/check")
+        .then((res) => (res.ok ? res.json() : { isAdmin: false }))
+        .then((data) => setEsAdmin(Boolean(data.isAdmin)))
+        .catch(() => setEsAdmin(false));
+    };
+
     cargarDatos();
+
     const onScroll = () => setNavScrolled(window.scrollY > 40);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-
-  const cargarDatos = () => {
-    setCargando(true);
-
-    fetch("/api/peliculas")
-      .then((res) => {
-        if (!res.ok) throw new Error("Error al cargar películas");
-        return res.json();
-      })
-      .then((data) => {
-        setPeliculas(Array.isArray(data.peliculas) ? data.peliculas : []);
-        setCargando(false);
-      })
-      .catch((err) => {
-        console.error("❌ Error al cargar películas:", err);
-        setCargando(false);
-      });
-
-    fetch("/api/favoritos")
-      .then((res) => (res.ok ? res.json() : []))
-      .then((ids: string[]) => setFavoritoIds(new Set(ids)))
-      .catch(() => {});
-
-    supabase.auth.getUser().then(({ data }) => {
-      setEmailUsuario(data.user?.email ?? null);
-    });
-
-    fetch("/api/admin/check")
-      .then((res) => (res.ok ? res.json() : { isAdmin: false }))
-      .then((data) => setEsAdmin(Boolean(data.isAdmin)))
-      .catch(() => setEsAdmin(false));
-  };
 
   const cerrarSesion = async () => {
     await fetch("/api/auth/signout", { method: "POST" });
@@ -99,7 +103,7 @@ export default function HomePage() {
   const filtradas = useMemo(() => {
     let lista = peliculas;
     if (busqueda.trim()) {
-      lista = lista.filter((p) => p.titulo.toLowerCase().includes(busqueda.toLowerCase()));
+      lista = lista.filter((p) => p.titulo?.toLowerCase().includes(busqueda.toLowerCase()));
     }
     if (categoriaActiva === "Mi lista") {
       lista = lista.filter((p) => favoritoIds.has(p.id));
@@ -242,7 +246,11 @@ export default function HomePage() {
         ) : peliculas.length === 0 ? (
           <EmptyState />
         ) : busqueda.trim() || categoriaActiva !== "Inicio" ? (
-          <Fila titulo="Resultados" peliculas={filtradas} favoritoIds={favoritoIds} onToggle={toggleFavorito} />
+          filtradas.length === 0 ? (
+            <SinResultados busqueda={busqueda} categoria={categoriaActiva} />
+          ) : (
+            <Fila titulo="Resultados" peliculas={filtradas} favoritoIds={favoritoIds} onToggle={toggleFavorito} />
+          )
         ) : (
           <>
             <Fila titulo="Agregadas recientemente" peliculas={recientes} favoritoIds={favoritoIds} onToggle={toggleFavorito} />
@@ -277,6 +285,10 @@ export default function HomePage() {
     </main>
   );
 }
+
+// ========================================
+// COMPONENTES
+// ========================================
 
 function Fila({
   titulo,
@@ -368,6 +380,27 @@ function SkeletonRows() {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function SinResultados({ busqueda, categoria }: { busqueda: string; categoria: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center text-center py-24 gap-3">
+      <p className="text-xl font-semibold">
+        {busqueda.trim()
+          ? `Sin resultados para "${busqueda}"`
+          : categoria === "Mi lista"
+          ? "Todavía no agregaste nada a Mi lista"
+          : `No hay títulos en "${categoria}" por ahora`}
+      </p>
+      <p className="text-nf-gray-light max-w-sm">
+        {busqueda.trim()
+          ? "Prueba con otra palabra o revisa que esté bien escrito."
+          : categoria === "Mi lista"
+          ? "Toca el botón + en cualquier tarjeta para guardarla acá."
+          : "Vuelve pronto, se van agregando películas seguido."}
+      </p>
     </div>
   );
 }

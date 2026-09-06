@@ -1,45 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
-import { crearClienteServidor } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
-  const supabase = crearClienteServidor();
+  try {
+    const { searchParams } = new URL(req.url);
+    const busqueda = searchParams.get("q");
+    const genero = searchParams.get("genero");
+    const pagina = Number(searchParams.get("pagina") || "1");
+    const porPagina = Number(searchParams.get("porPagina") || "0");
 
-  const { searchParams } = new URL(req.url);
-  const busqueda = searchParams.get("q");
-  const genero = searchParams.get("genero");
-  const pagina = Number(searchParams.get("pagina") || "1");
-  const porPagina = Number(searchParams.get("porPagina") || "0");
+    let query = supabaseAdmin
+      .from("peliculas")
+      .select("*", { count: "exact" })
+      .order("creado_en", { ascending: false });
 
-  let query = supabase
-    .from("peliculas")
-    .select("*", { count: "exact" })
-    .order("creado_en", { ascending: false });
+    if (busqueda) query = query.ilike("titulo", `%${busqueda}%`);
+    if (genero) query = query.eq("genero", genero);
 
-  if (busqueda) query = query.ilike("titulo", `%${busqueda}%`);
-  if (genero) query = query.eq("genero", genero);
+    if (porPagina > 0) {
+      const desde = (pagina - 1) * porPagina;
+      query = query.range(desde, desde + porPagina - 1);
+    }
 
-  if (porPagina > 0) {
-    const desde = (pagina - 1) * porPagina;
-    query = query.range(desde, desde + porPagina - 1);
+    const { data, error, count } = await query;
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ peliculas: data || [], total: count ?? data?.length ?? 0 });
+  } catch (error) {
+    console.error("Error en GET /api/peliculas:", error);
+    return NextResponse.json({ error: "Error al obtener películas" }, { status: 500 });
   }
-
-  const { data, error, count } = await query;
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ peliculas: data, total: count ?? data.length });
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = crearClienteServidor();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Debes iniciar sesión" }, { status: 401 });
-  }
-
   try {
     const body = await req.json();
     const { titulo, anio, genero, sinopsis, caratula, link_directo, fuente, destacada } = body;
@@ -48,10 +44,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Título, año y género son obligatorios" }, { status: 400 });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("peliculas")
       .insert([{
-        titulo, anio, genero,
+        titulo,
+        anio,
+        genero,
         sinopsis: sinopsis ?? "",
         caratula: caratula ?? "",
         link_directo: link_directo ?? "",
@@ -62,11 +60,13 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) {
+      console.error("Error en POST /api/peliculas:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json(data, { status: 201 });
-  } catch {
+  } catch (error) {
+    console.error("Error en POST /api/peliculas:", error);
     return NextResponse.json({ error: "Cuerpo de la petición inválido" }, { status: 400 });
   }
 }

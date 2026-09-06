@@ -7,17 +7,24 @@ import { useParams, useRouter } from "next/navigation";
 import type { Pelicula } from "@/lib/db";
 import { CARATULA_FALLBACK } from "@/lib/db";
 
-// Detecta links de vimeo.com REAL (player.vimeo.com/video/ID o vimeo.com/ID).
-// Dominios parecidos como "vimeos.net" NO matchean esto a propósito.
-function obtenerIdVimeo(url: string): string | null {
-  try {
-    const u = new URL(url);
-    if (u.hostname !== "vimeo.com" && u.hostname !== "player.vimeo.com") return null;
-    const match = u.pathname.match(/(\d+)/);
-    return match ? match[1] : null;
-  } catch {
-    return null;
-  }
+// ============================================
+// NUEVA FUNCIÓN: Detecta si es un iframe
+// ============================================
+function esLinkEmbed(url: string): boolean {
+  if (!url) return false;
+  const embedPatterns = [
+    "vimeos.net",
+    "embed-e.blogspot.com",
+    "voe.sx",
+    "doodstream.com",
+    "goodstream.one",
+    "player.vimeo.com",
+    "youtube.com/embed",
+    "youtu.be",
+    "dailymotion.com/embed",
+    "drive.google.com/file/d/",
+  ];
+  return embedPatterns.some((p) => url.includes(p));
 }
 
 export default function VerPeliculaPage() {
@@ -61,12 +68,6 @@ export default function VerPeliculaPage() {
     }).catch(() => {});
   };
 
-  useEffect(() => {
-    if (pelicula && obtenerIdVimeo(pelicula.link_directo)) {
-      registrarHistorial();
-    }
-  }, [pelicula]);
-
   const togglePlay = () => {
     const video = videoRef.current;
     if (!video) return;
@@ -109,8 +110,9 @@ export default function VerPeliculaPage() {
     );
   }
 
-  const tieneLink = Boolean(pelicula.link_directo);
-  const vimeoId = tieneLink ? obtenerIdVimeo(pelicula.link_directo) : null;
+  const link = pelicula.link_directo;
+  const tieneLink = Boolean(link);
+  const esEmbed = tieneLink ? esLinkEmbed(link) : false;
 
   return (
     <main className="min-h-screen bg-black flex flex-col">
@@ -127,89 +129,99 @@ export default function VerPeliculaPage() {
         onMouseMove={() => setMostrarControles(true)}
         onMouseLeave={() => reproduciendo && setMostrarControles(false)}
       >
-        {vimeoId ? (
-          <div className="w-full h-full flex items-center justify-center">
-            <iframe
-              src={`https://player.vimeo.com/video/${vimeoId}?autoplay=1&title=0&byline=0&portrait=0`}
-              className="w-full aspect-video max-h-screen"
-              allow="autoplay; fullscreen; picture-in-picture"
-              allowFullScreen
-              title={pelicula.titulo}
-            />
-          </div>
-        ) : tieneLink ? (
+        {tieneLink ? (
           <>
-            <video
-              ref={videoRef}
-              src={pelicula.link_directo}
-              poster={pelicula.caratula || CARATULA_FALLBACK}
-              className="w-full h-full max-h-screen"
-              onClick={togglePlay}
-              onPlay={() => { setReproduciendo(true); registrarHistorial(); }}
-              onPause={() => setReproduciendo(false)}
-              onTimeUpdate={(e) => setProgreso(e.currentTarget.currentTime)}
-              onLoadedMetadata={(e) => setDuracion(e.currentTarget.duration)}
-              onVolumeChange={(e) => setVolumen(e.currentTarget.volume)}
-              autoPlay
-            />
-
-            <div
-              className={`absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-transparent to-black/40 transition-opacity duration-300 pointer-events-none ${
-                mostrarControles ? "opacity-100" : "opacity-0"
-              }`}
-            >
-              {!reproduciendo && (
-                <button
+            {esEmbed ? (
+              // ============================================
+              // REPRODUCTOR IFRAME (NUEVO)
+              // ============================================
+              <iframe
+                src={link}
+                className="w-full h-full max-h-screen border-0"
+                allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+                allowFullScreen
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                loading="lazy"
+                title="Reproductor de video"
+              />
+            ) : (
+              // ============================================
+              // REPRODUCTOR VIDEO HTML5
+              // ============================================
+              <>
+                <video
+                  ref={videoRef}
+                  src={link}
+                  poster={pelicula.caratula || CARATULA_FALLBACK}
+                  className="w-full h-full max-h-screen"
                   onClick={togglePlay}
-                  className="absolute inset-0 m-auto w-16 h-16 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center transition-colors pointer-events-auto"
-                  aria-label="Reproducir"
-                >
-                  <PlayIcon />
-                </button>
-              )}
-
-              <div className="px-4 md:px-8 pb-6 space-y-2 pointer-events-auto">
-                <p className="text-sm md:text-base font-semibold mb-1">{pelicula.titulo}</p>
-                <input
-                  type="range"
-                  min={0}
-                  max={duracion || 0}
-                  value={progreso}
-                  onChange={(e) => {
-                    const t = Number(e.target.value);
-                    if (videoRef.current) videoRef.current.currentTime = t;
-                    setProgreso(t);
-                  }}
-                  className="w-full accent-nf-red cursor-pointer"
+                  onPlay={() => { setReproduciendo(true); registrarHistorial(); }}
+                  onPause={() => setReproduciendo(false)}
+                  onTimeUpdate={(e) => setProgreso(e.currentTarget.currentTime)}
+                  onLoadedMetadata={(e) => setDuracion(e.currentTarget.duration)}
+                  onVolumeChange={(e) => setVolumen(e.currentTarget.volume)}
+                  autoPlay
                 />
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <button onClick={togglePlay} aria-label={reproduciendo ? "Pausar" : "Reproducir"}>
-                      {reproduciendo ? <PauseIcon /> : <PlayIcon small />}
+
+                <div
+                  className={`absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-transparent to-black/40 transition-opacity duration-300 pointer-events-none ${
+                    mostrarControles ? "opacity-100" : "opacity-0"
+                  }`}
+                >
+                  {!reproduciendo && (
+                    <button
+                      onClick={togglePlay}
+                      className="absolute inset-0 m-auto w-16 h-16 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center transition-colors pointer-events-auto"
+                      aria-label="Reproducir"
+                    >
+                      <PlayIcon />
                     </button>
-                    <span className="text-sm text-gray-300">
-                      {formatTiempo(progreso)} / {formatTiempo(duracion)}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <VolumeIcon />
+                  )}
+
+                  <div className="px-4 md:px-8 pb-6 space-y-2 pointer-events-auto">
+                    <p className="text-sm md:text-base font-semibold mb-1">{pelicula.titulo}</p>
                     <input
                       type="range"
                       min={0}
-                      max={1}
-                      step={0.05}
-                      value={volumen}
+                      max={duracion || 0}
+                      value={progreso}
                       onChange={(e) => {
-                        const v = Number(e.target.value);
-                        if (videoRef.current) videoRef.current.volume = v;
-                        setVolumen(v);
+                        const t = Number(e.target.value);
+                        if (videoRef.current) videoRef.current.currentTime = t;
+                        setProgreso(t);
                       }}
-                      className="w-20 accent-nf-red cursor-pointer"
+                      className="w-full accent-nf-red cursor-pointer"
                     />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <button onClick={togglePlay} aria-label={reproduciendo ? "Pausar" : "Reproducir"}>
+                          {reproduciendo ? <PauseIcon /> : <PlayIcon small />}
+                        </button>
+                        <span className="text-sm text-gray-300">
+                          {formatTiempo(progreso)} / {formatTiempo(duracion)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <VolumeIcon />
+                        <input
+                          type="range"
+                          min={0}
+                          max={1}
+                          step={0.05}
+                          value={volumen}
+                          onChange={(e) => {
+                            const v = Number(e.target.value);
+                            if (videoRef.current) videoRef.current.volume = v;
+                            setVolumen(v);
+                          }}
+                          className="w-20 accent-nf-red cursor-pointer"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              </>
+            )}
           </>
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-center px-4">
@@ -231,6 +243,9 @@ export default function VerPeliculaPage() {
   );
 }
 
+// ============================================
+// ICONOS
+// ============================================
 function PlayIcon({ small }: { small?: boolean }) {
   const s = small ? 18 : 28;
   return (

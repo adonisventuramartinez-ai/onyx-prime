@@ -26,13 +26,28 @@ export default function HomePage() {
   const [esAdmin, setEsAdmin] = useState(false);
 
   useEffect(() => {
+    cargarDatos();
+    const onScroll = () => setNavScrolled(window.scrollY > 40);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const cargarDatos = () => {
+    setCargando(true);
+
     fetch("/api/peliculas")
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error("Error al cargar películas");
+        return res.json();
+      })
       .then((data) => {
         setPeliculas(Array.isArray(data.peliculas) ? data.peliculas : []);
         setCargando(false);
       })
-      .catch(() => setCargando(false));
+      .catch((err) => {
+        console.error("❌ Error al cargar películas:", err);
+        setCargando(false);
+      });
 
     fetch("/api/favoritos")
       .then((res) => (res.ok ? res.json() : []))
@@ -47,11 +62,7 @@ export default function HomePage() {
       .then((res) => (res.ok ? res.json() : { isAdmin: false }))
       .then((data) => setEsAdmin(Boolean(data.isAdmin)))
       .catch(() => setEsAdmin(false));
-
-    const onScroll = () => setNavScrolled(window.scrollY > 40);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  };
 
   const cerrarSesion = async () => {
     await fetch("/api/auth/signout", { method: "POST" });

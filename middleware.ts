@@ -1,7 +1,19 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const RUTAS_PUBLICAS = ["/login", "/api/auth"];
+// ========================================
+// RUTAS PÚBLICAS (NO REQUIEREN AUTENTICACIÓN)
+// ========================================
+const RUTAS_PUBLICAS = [
+  "/",                                    // 👈 Página principal
+  "/login",
+  "/api/auth",
+  "/api/scrapear-estrenos/worker",
+  "/api/scrapear-estrenos",
+  "/api/scrapear-estrenos/estado",
+  "/api/buscar-cinecalidad",
+  "/api/limpiar-link",
+];
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } });
@@ -28,18 +40,24 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const esRutaPublica = RUTAS_PUBLICAS.some((ruta) =>
-    request.nextUrl.pathname.startsWith(ruta)
-  );
+  const pathname = request.nextUrl.pathname;
+  
+  // Verificar si la ruta es pública
+  const esRutaPublica = RUTAS_PUBLICAS.some((ruta) => {
+    if (ruta === "/") return pathname === "/";
+    return pathname.startsWith(ruta);
+  });
 
+  // Redirigir a login si no está autenticado y la ruta no es pública
   if (!user && !esRutaPublica) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("siguiente", request.nextUrl.pathname);
+    url.searchParams.set("siguiente", pathname);
     return NextResponse.redirect(url);
   }
 
-  if (user && request.nextUrl.pathname === "/login") {
+  // Redirigir al home si está autenticado y va a login
+  if (user && pathname === "/login") {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     url.searchParams.delete("siguiente");

@@ -9,11 +9,6 @@ const RUTAS_PUBLICAS = [
   "/api/peliculas/",
   "/api/favoritos",
   "/api/admin/check",
-  "/api/scrapear-estrenos/worker",
-  "/api/scrapear-estrenos",
-  "/api/scrapear-estrenos/estado",
-  "/api/buscar-cinecalidad",
-  "/api/limpiar-link",
 ];
 
 export async function middleware(request: NextRequest) {

@@ -8,7 +8,7 @@ import {
   X, Heart, Clock, Settings, LogOut, SlidersHorizontal,
 } from "lucide-react";
 
-const CARATULA_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='450' viewBox='0 0 300 450'%3E%3Crect width='300' height='450' fill='%231a1815'/%3E%3Ctext x='50%25' y='50%25' font-family='Georgia' font-size='20' fill='%23948c7e' text-anchor='middle' dy='.3em'%3ESin imagen%3C/text%3E%3C/svg%3E";
+const CARATULA_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='450' viewBox='0 0 300 450'%3E%3Crect width='300' height='450' fill='%23181818'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='20' fill='%238a8a8a' text-anchor='middle' dy='.3em'%3ESin imagen%3C/text%3E%3C/svg%3E";
 
 type Pelicula = {
   id: string;
@@ -241,7 +241,7 @@ export default function HomePage() {
           <p className="text-nf-gray-light mb-6">{errorCarga}</p>
           <button
             onClick={reiniciarCarga}
-            className="bg-nf-red hover:bg-nf-red-hover text-nf-black font-semibold px-6 py-2 rounded-sm transition-colors"
+            className="bg-nf-red hover:bg-nf-red-hover text-white font-semibold px-6 py-2 rounded-sm transition-colors"
           >
             Reintentar
           </button>
@@ -305,7 +305,7 @@ export default function HomePage() {
             {esAdmin && (
               <Link
                 href="/admin"
-                className="hidden md:flex items-center gap-1.5 border border-nf-red/50 text-nf-red hover:bg-nf-red hover:text-nf-black px-3 py-2 rounded-sm text-xs font-semibold transition-colors"
+                className="hidden md:flex items-center gap-1.5 border border-nf-red/50 text-nf-red hover:bg-nf-red hover:text-white px-3 py-2 rounded-sm text-xs font-semibold transition-colors"
               >
                 <Settings className="w-3.5 h-3.5" /> Panel
               </Link>
@@ -314,7 +314,7 @@ export default function HomePage() {
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuAbierto((v) => !v)}
-                className="w-8 h-8 rounded-full bg-nf-red flex items-center justify-center font-semibold text-sm text-nf-black hover:bg-nf-red-hover transition-colors"
+                className="w-8 h-8 rounded-full bg-nf-red flex items-center justify-center font-semibold text-sm text-white hover:bg-nf-red-hover transition-colors"
                 aria-label="Menú de usuario"
               >
                 {emailUsuario ? emailUsuario[0].toUpperCase() : "U"}
@@ -384,9 +384,9 @@ export default function HomePage() {
               <div className="flex flex-wrap gap-3">
                 <Link
                   href={`/ver/${destacada.id}`}
-                  className="flex items-center gap-2 bg-nf-red hover:bg-nf-red-hover text-nf-black px-7 py-3 rounded-sm font-semibold transition-colors"
+                  className="flex items-center gap-2 bg-nf-red hover:bg-nf-red-hover text-white px-7 py-3 rounded-sm font-semibold transition-colors"
                 >
-                  <Play className="w-4 h-4 fill-nf-black" /> Reproducir
+                  <Play className="w-4 h-4 fill-white" /> Reproducir
                 </Link>
                 <Link
                   href={`/pelicula/${destacada.id}`}
@@ -410,7 +410,7 @@ export default function HomePage() {
             <Link
               href={`/pelicula/${destacada.id}`}
               className="order-1 md:order-2 group relative aspect-[2/3] w-40 sm:w-56 md:w-full mx-auto md:mx-0 rounded-sm overflow-hidden border border-white/10 shadow-2xl"
-              style={{ boxShadow: "0 20px 60px -20px rgba(217,142,59,0.25)" }}
+              style={{ boxShadow: "0 20px 60px -20px rgba(225,29,46,0.3)" }}
             >
               <img
                 src={destacada.caratula || CARATULA_FALLBACK}
@@ -477,13 +477,13 @@ export default function HomePage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => setVistaGrid("grid")}
-                      className={`flex-1 text-sm py-1.5 rounded-sm transition-colors ${vistaGrid === "grid" ? "bg-nf-red text-nf-black font-semibold" : "bg-black/40 text-nf-gray-light"}`}
+                      className={`flex-1 text-sm py-1.5 rounded-sm transition-colors ${vistaGrid === "grid" ? "bg-nf-red text-white font-semibold" : "bg-black/40 text-nf-gray-light"}`}
                     >
                       Cuadrícula
                     </button>
                     <button
                       onClick={() => setVistaGrid("lista")}
-                      className={`flex-1 text-sm py-1.5 rounded-sm transition-colors ${vistaGrid === "lista" ? "bg-nf-red text-nf-black font-semibold" : "bg-black/40 text-nf-gray-light"}`}
+                      className={`flex-1 text-sm py-1.5 rounded-sm transition-colors ${vistaGrid === "lista" ? "bg-nf-red text-white font-semibold" : "bg-black/40 text-nf-gray-light"}`}
                     >
                       Lista
                     </button>
@@ -600,7 +600,7 @@ function TarjetaPelicula({
             onError={(e) => { (e.target as HTMLImageElement).src = CARATULA_FALLBACK; setCargandoImg(false); }}
           />
           {esNueva && (
-            <span className="absolute top-2 left-2 bg-nf-red text-nf-black text-[9px] font-bold px-2 py-0.5 rounded-sm z-10">
+            <span className="absolute top-2 left-2 bg-nf-red text-white text-[9px] font-bold px-2 py-0.5 rounded-sm z-10">
               NUEVO
             </span>
           )}

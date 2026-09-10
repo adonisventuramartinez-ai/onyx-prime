@@ -61,19 +61,20 @@ function LoginForm() {
   };
 
   return (
-    <main className="relative min-h-screen flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-nf-black">
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/70 to-black" />
+    <main className="relative min-h-screen flex items-center justify-center px-4 bg-nf-dark">
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-nf-black via-nf-dark to-nf-dark" />
+        <div className="absolute inset-x-0 top-0 sprocket-rule text-nf-gray opacity-20" />
       </div>
 
       <div className="absolute top-6 left-6 md:left-12">
-        <span className="text-nf-red font-black text-2xl md:text-3xl tracking-tight">
-          ONYXFLIX
+        <span className="font-display italic text-2xl md:text-3xl tracking-tight text-nf-cream select-none">
+          Onyx<span className="text-nf-red not-italic">.</span>
         </span>
       </div>
 
-      <div className="relative z-10 w-full max-w-md bg-black/75 rounded-md p-8 md:p-14 space-y-6">
-        <h1 className="text-2xl md:text-3xl font-bold">
+      <div className="relative z-10 w-full max-w-md bg-nf-surface/90 border border-white/10 rounded-sm p-8 md:p-12 space-y-6">
+        <h1 className="font-display italic text-2xl md:text-3xl text-nf-cream">
           {modo === "login" ? "Iniciar sesión" : "Crear cuenta"}
         </h1>
 
@@ -105,13 +106,13 @@ function LoginForm() {
             required
           />
 
-          {error && <p className="text-nf-red text-sm">{error}</p>}
+          {error && <p className="text-nf-garnet-hover text-sm">{error}</p>}
           {mensaje && <p className="text-green-500 text-sm">{mensaje}</p>}
 
           <button
             type="submit"
             disabled={cargando}
-            className="w-full bg-nf-red hover:bg-nf-red-hover transition-colors py-3 rounded font-semibold disabled:opacity-50"
+            className="w-full bg-nf-red hover:bg-nf-red-hover text-nf-black transition-colors py-3 rounded-sm font-semibold disabled:opacity-50"
           >
             {cargando ? "Un momento..." : modo === "login" ? "Iniciar sesión" : "Registrarme"}
           </button>
@@ -120,10 +121,10 @@ function LoginForm() {
         <div className="text-nf-gray-light text-sm">
           {modo === "login" ? (
             <p>
-              ¿Primera vez en ONYXFLIX?{" "}
+              ¿Primera vez aquí?{" "}
               <button
                 onClick={() => { setModo("registro"); setError(""); setMensaje(""); }}
-                className="text-white hover:underline font-semibold"
+                className="text-nf-cream hover:underline font-semibold"
               >
                 Crea una cuenta
               </button>
@@ -133,7 +134,7 @@ function LoginForm() {
               ¿Ya tienes cuenta?{" "}
               <button
                 onClick={() => { setModo("login"); setError(""); setMensaje(""); }}
-                className="text-white hover:underline font-semibold"
+                className="text-nf-cream hover:underline font-semibold"
               >
                 Inicia sesión
               </button>
@@ -145,19 +146,19 @@ function LoginForm() {
       <style jsx global>{`
         .login-input {
           width: 100%;
-          background: rgba(51, 51, 51, 0.7);
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          border-radius: 4px;
+          background: rgba(20, 18, 16, 0.7);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 2px;
           padding: 14px 16px;
-          color: white;
+          color: #f3eee4;
           outline: none;
-          transition: background 0.2s;
+          transition: border-color 0.2s;
         }
         .login-input:focus {
-          background: rgba(70, 70, 70, 0.9);
+          border-color: #d98e3b;
         }
         .login-input::placeholder {
-          color: #8c8c8c;
+          color: #948c7e;
         }
       `}</style>
     </main>

@@ -54,7 +54,7 @@ export default function AdminPage() {
   };
 
   const eliminar = async (id: string) => {
-    if (!confirm("¿Eliminar esta película? Esta acción no se puede deshacer.")) return;
+    if (!confirm("Eliminar esta pelicula? Esta accion no se puede deshacer.")) return;
     setEliminandoId(id);
     try {
       const res = await fetch(`/api/peliculas/${id}`, { method: "DELETE" });
@@ -62,7 +62,7 @@ export default function AdminPage() {
         setPeliculas((prev) => prev.filter((p) => p.id !== id));
       } else {
         const data = await res.json().catch(() => ({}));
-        alert(data.error || "No se pudo eliminar la película");
+        alert(data.error || "No se pudo eliminar la pelicula");
       }
     } finally {
       setEliminandoId(null);
@@ -146,12 +146,12 @@ export default function AdminPage() {
       <main className="min-h-screen bg-nf-dark flex flex-col items-center justify-center gap-4 text-center px-4">
         <p className="text-xl font-semibold">No tienes acceso al panel de administrador</p>
         <p className="text-nf-gray-light text-sm max-w-sm">
-          Tu cuenta ({emailUsuario || "sin sesión"}) no está en la lista de administradores.
-          Pídele al dueño del proyecto que agregue tu correo a la variable de entorno{" "}
+          Tu cuenta ({emailUsuario || "sin sesion"}) no esta en la lista de administradores.
+          Pidele al dueno del proyecto que agregue tu correo a la variable de entorno{" "}
           <code className="bg-white/10 px-1 rounded">ADMIN_EMAILS</code>.
         </p>
         <Link href="/" className="bg-nf-red hover:bg-nf-red-hover transition-colors px-6 py-2.5 rounded font-semibold">
-          Volver al catálogo
+          Volver al catalogo
         </Link>
       </main>
     );
@@ -166,43 +166,39 @@ export default function AdminPage() {
     <main className="min-h-screen bg-nf-dark px-4 md:px-10 py-8">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="font-display italic text-nf-cream text-2xl">Onyx <span className="text-nf-red not-italic">· Panel</span></h1>
-          <p className="text-nf-gray-light text-sm">Gestiona tu catálogo</p>
+          <h1 className="font-display italic text-nf-cream text-2xl">
+            Onyx <span className="text-nf-red not-italic">- Panel</span>
+          </h1>
+          <p className="text-nf-gray-light text-sm">Gestiona tu catalogo</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <Link
             href="/"
             className="bg-white/10 hover:bg-white/20 transition-colors px-4 py-2 rounded font-semibold text-sm"
           >
-            Ver catálogo
+            Ver catalogo
           </Link>
           <Link
             href="/agregar"
             className="bg-nf-red hover:bg-nf-red-hover transition-colors px-4 py-2 rounded font-semibold text-sm"
           >
-            + Agregar película
+            + Agregar pelicula
           </Link>
         </div>
       </div>
 
-      {/* ======================================== */}
-      {/* ESTADÍSTICAS */}
-      {/* ======================================== */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 max-w-2xl">
         <Stat label="Total" valor={total} />
         <Stat label="Manuales" valor={manual} />
-        <Stat label="Automáticas" valor={auto} />
+        <Stat label="Automaticas" valor={auto} />
         <Stat label="Destacadas" valor={destacadas} />
       </div>
 
-      {/* ======================================== */}
-      {/* FILTROS Y TABLA */}
-      {/* ======================================== */}
       <div className="flex flex-wrap gap-3 mb-4">
         <input
           value={busqueda}
           onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
-          placeholder="Buscar por título..."
+          placeholder="Buscar por titulo..."
           className="bg-white/5 border border-white/15 rounded px-3 py-2 text-sm focus:outline-none focus:border-white flex-1 min-w-[180px]"
         />
         <select
@@ -212,14 +208,14 @@ export default function AdminPage() {
         >
           <option value="todas">Todas las fuentes</option>
           <option value="manual">Manuales</option>
-          <option value="auto">Automáticas</option>
+          <option value="auto">Automaticas</option>
         </select>
         <select
           value={filtroGenero}
           onChange={(e) => { setFiltroGenero(e.target.value); setPagina(1); }}
           className="bg-white/5 border border-white/15 rounded px-3 py-2 text-sm"
         >
-          <option value="todos">Todos los géneros</option>
+          <option value="todos">Todos los generos</option>
           {generos.map((g) => (
             <option key={g} value={g}>{g}</option>
           ))}
@@ -229,10 +225,128 @@ export default function AdminPage() {
           onChange={(e) => setOrden(e.target.value as any)}
           className="bg-white/5 border border-white/15 rounded px-3 py-2 text-sm"
         >
-          <option value="reciente">Más reciente</option>
-          <option value="titulo">Título (A-Z)</option>
-          <option value="anio">Año (nuevo-viejo)</option>
+          <option value="reciente">Mas reciente</option>
+          <option value="titulo">Titulo (A-Z)</option>
+          <option value="anio">Ano (nuevo-viejo)</option>
         </select>
       </div>
 
-      <div className="overflow-x-auto rounded border
+      <div className="overflow-x-auto rounded border border-white/10">
+        <table className="w-full text-sm">
+          <thead className="bg-black/60 text-nf-gray-light text-left">
+            <tr>
+              <th className="p-3">Caratula</th>
+              <th className="p-3">Titulo</th>
+              <th className="p-3">Ano</th>
+              <th className="p-3">Genero</th>
+              <th className="p-3">Fuente</th>
+              <th className="p-3">Destacada</th>
+              <th className="p-3 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {cargando ? (
+              <tr><td colSpan={7} className="p-6 text-center text-nf-gray-light">Cargando...</td></tr>
+            ) : visibles.length === 0 ? (
+              <tr><td colSpan={7} className="p-6 text-center text-nf-gray-light">No hay peliculas que coincidan con el filtro.</td></tr>
+            ) : (
+              visibles.map((p) => (
+                <tr key={p.id} className="border-t border-white/5 hover:bg-white/5">
+                  <td className="p-3">
+                    <img
+                      src={p.caratula || CARATULA_FALLBACK}
+                      onError={(e) => { (e.target as HTMLImageElement).src = CARATULA_FALLBACK; }}
+                      alt=""
+                      className="w-10 h-14 object-cover rounded bg-neutral-800"
+                    />
+                  </td>
+                  <td className="p-3 font-medium">{p.titulo}</td>
+                  <td className="p-3 text-nf-gray-light">{p.anio}</td>
+                  <td className="p-3 text-nf-gray-light">{p.genero}</td>
+                  <td className="p-3">
+                    <span className={`text-xs px-2 py-0.5 rounded ${
+                      p.fuente === "manual" ? "bg-blue-500/20 text-blue-300" : "bg-purple-500/20 text-purple-300"
+                    }`}>
+                      {p.fuente}
+                    </span>
+                  </td>
+                  <td className="p-3">
+                    <button
+                      onClick={() => toggleDestacada(p)}
+                      className={`text-xs px-2 py-0.5 rounded transition-colors ${
+                        p.destacada ? "bg-nf-red text-white" : "bg-white/10 text-nf-gray-light hover:bg-white/20"
+                      }`}
+                    >
+                      {p.destacada ? "Si" : "No"}
+                    </button>
+                  </td>
+                  <td className="p-3 text-right space-x-3 whitespace-nowrap">
+                    <Link href={`/pelicula/${p.id}`} className="text-nf-gray-light hover:text-white text-xs">Ver</Link>
+                    <button onClick={() => setEditando(p)} className="text-blue-400 hover:text-blue-300 text-xs">Editar</button>
+                    <button
+                      onClick={() => eliminar(p.id)}
+                      disabled={eliminandoId === p.id}
+                      className="text-nf-garnet hover:text-nf-garnet-hover text-xs disabled:opacity-40"
+                    >
+                      {eliminandoId === p.id ? "Eliminando..." : "Eliminar"}
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {totalPaginas > 1 && (
+        <div className="flex items-center justify-center gap-3 mt-6">
+          <button
+            onClick={() => setPagina((p) => Math.max(1, p - 1))}
+            disabled={paginaSegura === 1}
+            className="px-3 py-1.5 rounded bg-white/10 hover:bg-white/20 text-sm disabled:opacity-30"
+          >
+            Anterior
+          </button>
+          <span className="text-sm text-nf-gray-light">Pagina {paginaSegura} de {totalPaginas}</span>
+          <button
+            onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+            disabled={paginaSegura === totalPaginas}
+            className="px-3 py-1.5 rounded bg-white/10 hover:bg-white/20 text-sm disabled:opacity-30"
+          >
+            Siguiente
+          </button>
+        </div>
+      )}
+
+      {editando && (
+        <div
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 px-2 sm:px-4 py-4 sm:py-8 overflow-y-auto"
+          onClick={(e) => e.target === e.currentTarget && setEditando(null)}
+        >
+          <div className="bg-nf-dark border border-white/10 rounded-lg p-4 sm:p-6 md:p-8 w-full max-w-2xl max-h-[95vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h2 className="font-display italic text-lg sm:text-xl text-nf-cream pr-2 truncate">Editar: {editando.titulo}</h2>
+              <button
+                onClick={() => setEditando(null)}
+                className="text-nf-gray-light hover:text-white text-2xl leading-none w-8 h-8 flex items-center justify-center shrink-0 rounded hover:bg-white/10"
+                aria-label="Cerrar"
+              >
+                x
+              </button>
+            </div>
+            <PeliculaForm inicial={editando} onGuardar={guardarEdicion} textoBoton="Guardar cambios" />
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}
+
+function Stat({ label, valor }: { label: string; valor: number }) {
+  return (
+    <div className="bg-black/50 border border-white/10 rounded p-4">
+      <p className="text-2xl font-display font-semibold text-nf-cream">{valor}</p>
+      <p className="text-nf-gray-light text-xs uppercase tracking-wide">{label}</p>
+    </div>
+  );
+}

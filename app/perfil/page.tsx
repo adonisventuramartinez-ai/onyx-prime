@@ -102,7 +102,7 @@ export default function PerfilPage() {
 
         <section className="bg-nf-surface/60 border border-white/10 rounded-sm p-6 space-y-5">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-nf-red flex items-center justify-center text-2xl font-display font-semibold text-nf-black overflow-hidden shrink-0">
+            <div className="w-16 h-16 rounded-full bg-nf-red flex items-center justify-center text-2xl font-display font-semibold text-white overflow-hidden shrink-0">
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
@@ -146,7 +146,7 @@ export default function PerfilPage() {
             <button
               type="submit"
               disabled={guardandoPerfil}
-              className="bg-nf-red hover:bg-nf-red-hover text-nf-black transition-colors px-6 py-2.5 rounded-sm font-semibold disabled:opacity-50"
+              className="bg-nf-red hover:bg-nf-red-hover text-white transition-colors px-6 py-2.5 rounded-sm font-semibold disabled:opacity-50"
             >
               {guardandoPerfil ? "Guardando..." : "Guardar cambios"}
             </button>
@@ -197,12 +197,12 @@ export default function PerfilPage() {
           border: 1px solid rgba(255, 255, 255, 0.15);
           border-radius: 2px;
           padding: 10px 14px;
-          color: #f3eee4;
+          color: #f5f5f5;
           outline: none;
           transition: border-color 0.2s;
         }
         .input:focus {
-          border-color: #d98e3b;
+          border-color: #e11d2e;
         }
       `}</style>
     </main>

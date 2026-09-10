@@ -112,7 +112,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={cargando}
-            className="w-full bg-nf-red hover:bg-nf-red-hover text-nf-black transition-colors py-3 rounded-sm font-semibold disabled:opacity-50"
+            className="w-full bg-nf-red hover:bg-nf-red-hover text-white transition-colors py-3 rounded-sm font-semibold disabled:opacity-50"
           >
             {cargando ? "Un momento..." : modo === "login" ? "Iniciar sesión" : "Registrarme"}
           </button>
@@ -146,19 +146,19 @@ function LoginForm() {
       <style jsx global>{`
         .login-input {
           width: 100%;
-          background: rgba(20, 18, 16, 0.7);
+          background: rgba(10, 10, 10, 0.7);
           border: 1px solid rgba(255, 255, 255, 0.12);
           border-radius: 2px;
           padding: 14px 16px;
-          color: #f3eee4;
+          color: #f5f5f5;
           outline: none;
           transition: border-color 0.2s;
         }
         .login-input:focus {
-          border-color: #d98e3b;
+          border-color: #e11d2e;
         }
         .login-input::placeholder {
-          color: #948c7e;
+          color: #8a8a8a;
         }
       `}</style>
     </main>

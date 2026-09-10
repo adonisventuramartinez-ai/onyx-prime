@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/db";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
-async function esAdmin(supabase: ReturnType<typeof crearClienteServidor>) {
+async function esAdmin() {
+  const supabase = crearClienteServidor();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return false;
   const admins = (process.env.ADMIN_EMAILS || "")
@@ -15,8 +17,7 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const supabase = crearClienteServidor();
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("peliculas")
     .select("*")
     .eq("id", params.id)
@@ -33,9 +34,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const supabase = crearClienteServidor();
-
-  if (!(await esAdmin(supabase))) {
+  if (!(await esAdmin())) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
 
@@ -46,7 +45,7 @@ export async function PATCH(
     if (campo in body) actualizacion[campo] = body[campo];
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("peliculas")
     .update(actualizacion)
     .eq("id", params.id)
@@ -64,13 +63,11 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const supabase = crearClienteServidor();
-
-  if (!(await esAdmin(supabase))) {
+  if (!(await esAdmin())) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
 
-  const { error } = await supabase.from("peliculas").delete().eq("id", params.id);
+  const { error } = await supabaseAdmin.from("peliculas").delete().eq("id", params.id);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

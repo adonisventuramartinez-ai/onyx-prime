@@ -7,22 +7,32 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABAS
 const SUPABASE_SECRET = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
 if (!SUPABASE_URL || !SUPABASE_SECRET) {
-  console.warn("⚠️ Faltan variables de entorno de Supabase");
+  console.warn(
+    "⚠️ Faltan variables de entorno de Supabase (NEXT_PUBLIC_SUPABASE_URL y SUPABASE_SECRET_KEY / SUPABASE_SERVICE_ROLE_KEY). " +
+    "Configúralas en Vercel > Project Settings > Environment Variables."
+  );
 }
 
 // ========================================
 // CLIENTE ADMIN (para el servidor - API routes)
 // ========================================
-export const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SECRET, {
-  auth: { persistSession: false },
-});
+// Usamos un placeholder si faltan las variables para que el MÓDULO no
+// tire toda la app abajo en el build/al arrancar (createClient lanza un
+// error inmediato si la URL viene vacía). Si de verdad faltan las
+// variables reales, las llamadas a Supabase fallarán con un error claro
+// en runtime en vez de un crash silencioso en todas las rutas.
+export const supabaseAdmin = createClient(
+  SUPABASE_URL || "https://placeholder.supabase.co",
+  SUPABASE_SECRET || "placeholder",
+  { auth: { persistSession: false } }
+);
 
 // ========================================
 // CLIENTE PARA EL NAVEGADOR
 // ========================================
 export const supabaseBrowser = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder"
 );
 
 // ========================================

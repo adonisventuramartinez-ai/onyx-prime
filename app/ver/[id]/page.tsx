@@ -13,16 +13,13 @@ import { CARATULA_FALLBACK } from "@/lib/db";
 function esLinkEmbed(url: string): boolean {
   if (!url) return false;
   const embedPatterns = [
-    "vimeos.net",
-    "embed-e.blogspot.com",
-    "voe.sx",
-    "doodstream.com",
-    "goodstream.one",
     "player.vimeo.com",
     "youtube.com/embed",
     "youtu.be",
     "dailymotion.com/embed",
     "drive.google.com/file/d/",
+    "supabase.co/storage",
+    "iframe.mediadelivery.net",
   ];
   return embedPatterns.some((p) => url.includes(p));
 }

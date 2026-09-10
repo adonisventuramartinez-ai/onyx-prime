@@ -1,5 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/db";
+import { crearClienteServidor } from "@/lib/supabase/server";
+
+async function esAdmin() {
+  const supabase = crearClienteServidor();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+  const admins = (process.env.ADMIN_EMAILS || "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return admins.includes((user.email || "").toLowerCase());
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -37,6 +49,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    if (!(await esAdmin())) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+
     const body = await req.json();
     const { titulo, anio, genero, sinopsis, caratula, link_directo, fuente, destacada } = body;
 

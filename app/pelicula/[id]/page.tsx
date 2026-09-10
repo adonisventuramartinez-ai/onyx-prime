@@ -87,7 +87,7 @@ export default function FichaPeliculaPage() {
     return (
       <div className="min-h-screen bg-nf-dark flex flex-col items-center justify-center gap-4 text-center px-4">
         <p className="text-xl font-semibold text-nf-cream">{error || "Película no disponible"}</p>
-        <Link href="/" className="bg-nf-red hover:bg-nf-red-hover text-nf-black transition-colors px-6 py-2.5 rounded-sm font-semibold">
+        <Link href="/" className="bg-nf-red hover:bg-nf-red-hover text-white transition-colors px-6 py-2.5 rounded-sm font-semibold">
           Volver al inicio
         </Link>
       </div>
@@ -143,9 +143,9 @@ export default function FichaPeliculaPage() {
               <div className="flex flex-wrap justify-center md:justify-start gap-3">
                 <Link
                   href={`/ver/${pelicula.id}`}
-                  className="flex items-center gap-2 bg-nf-red text-nf-black px-6 py-2.5 rounded-sm font-semibold hover:bg-nf-red-hover transition-colors"
+                  className="flex items-center gap-2 bg-nf-red text-white px-6 py-2.5 rounded-sm font-semibold hover:bg-nf-red-hover transition-colors"
                 >
-                  <Play className="w-4 h-4 fill-nf-black" /> Reproducir
+                  <Play className="w-4 h-4 fill-white" /> Reproducir
                 </Link>
                 <button
                   onClick={toggleMiLista}

@@ -138,7 +138,7 @@ export default function PeliculaForm({
         <button
           type="submit"
           disabled={guardando}
-          className="w-full md:w-auto bg-nf-red hover:bg-nf-red-hover text-nf-black transition-colors px-8 py-3 rounded-sm font-semibold disabled:opacity-50"
+          className="w-full md:w-auto bg-nf-red hover:bg-nf-red-hover text-white transition-colors px-8 py-3 rounded-sm font-semibold disabled:opacity-50"
         >
           {guardando ? "Guardando..." : textoBoton}
         </button>
@@ -165,12 +165,12 @@ export default function PeliculaForm({
           border: 1px solid rgba(255, 255, 255, 0.15);
           border-radius: 2px;
           padding: 10px 14px;
-          color: #f3eee4;
+          color: #f5f5f5;
           outline: none;
           transition: border-color 0.2s;
         }
         .input:focus {
-          border-color: #d98e3b;
+          border-color: #e11d2e;
         }
       `}</style>
     </div>

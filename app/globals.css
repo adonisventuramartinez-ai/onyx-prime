@@ -3,15 +3,15 @@
 @tailwind utilities;
 
 :root {
-  --nf-black: #08070a;
-  --nf-dark: #0e0d0c;
-  --nf-surface: #1a1815;
-  --nf-red: #d98e3b;
-  --nf-red-hover: #e6a458;
+  --nf-black: #000000;
+  --nf-dark: #0a0a0a;
+  --nf-surface: #181818;
+  --nf-red: #e11d2e;
+  --nf-red-hover: #ff3049;
   --nf-garnet: #8c2f2f;
-  --nf-white: #f3eee4;
-  --nf-gray: #948c7e;
-  --nf-gray-light: #c9c2b4;
+  --nf-white: #f5f5f5;
+  --nf-gray: #8a8a8a;
+  --nf-gray-light: #c7c7c7;
 }
 
 * {
@@ -42,7 +42,7 @@ body {
   background: var(--nf-black);
 }
 ::-webkit-scrollbar-thumb {
-  background: #33302a;
+  background: #2a2a2a;
   border-radius: 6px;
 }
 ::-webkit-scrollbar-thumb:hover {

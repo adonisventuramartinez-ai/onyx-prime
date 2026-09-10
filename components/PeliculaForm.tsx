@@ -133,12 +133,12 @@ export default function PeliculaForm({
           Mostrar como destacada en el hero de la página principal
         </label>
 
-        {error && <p className="text-nf-red text-sm">{error}</p>}
+        {error && <p className="text-nf-garnet-hover text-sm">{error}</p>}
 
         <button
           type="submit"
           disabled={guardando}
-          className="w-full md:w-auto bg-nf-red hover:bg-nf-red-hover transition-colors px-8 py-3 rounded font-semibold disabled:opacity-50"
+          className="w-full md:w-auto bg-nf-red hover:bg-nf-red-hover text-nf-black transition-colors px-8 py-3 rounded-sm font-semibold disabled:opacity-50"
         >
           {guardando ? "Guardando..." : textoBoton}
         </button>
@@ -146,7 +146,7 @@ export default function PeliculaForm({
 
       <div>
         <p className="text-xs text-nf-gray-light mb-2 uppercase tracking-wide">Vista previa</p>
-        <div className="aspect-[2/3] rounded overflow-hidden bg-neutral-800 border border-white/10">
+        <div className="aspect-[2/3] rounded-sm overflow-hidden bg-nf-surface border border-white/10">
           <img
             src={form.caratula || CARATULA_FALLBACK}
             onError={(e) => {
@@ -163,14 +163,14 @@ export default function PeliculaForm({
           width: 100%;
           background: rgba(255, 255, 255, 0.05);
           border: 1px solid rgba(255, 255, 255, 0.15);
-          border-radius: 6px;
+          border-radius: 2px;
           padding: 10px 14px;
-          color: white;
+          color: #f3eee4;
           outline: none;
           transition: border-color 0.2s;
         }
         .input:focus {
-          border-color: white;
+          border-color: #d98e3b;
         }
       `}</style>
     </div>

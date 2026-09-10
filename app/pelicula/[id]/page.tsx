@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { Play, Plus, Check, Share2 } from "lucide-react";
 import type { Pelicula } from "@/lib/db";
 import { CARATULA_FALLBACK } from "@/lib/db";
 
@@ -16,6 +17,7 @@ export default function FichaPeliculaPage() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
   const [enLista, setEnLista] = useState(false);
+  const [copiado, setCopiado] = useState(false);
 
   useEffect(() => {
     fetch(`/api/peliculas/${id}`)
@@ -68,7 +70,8 @@ export default function FichaPeliculaPage() {
       navigator.share({ title: pelicula?.titulo, url }).catch(() => {});
     } else {
       await navigator.clipboard.writeText(url);
-      alert("Enlace copiado al portapapeles");
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
     }
   };
 
@@ -83,8 +86,8 @@ export default function FichaPeliculaPage() {
   if (error || !pelicula) {
     return (
       <div className="min-h-screen bg-nf-dark flex flex-col items-center justify-center gap-4 text-center px-4">
-        <p className="text-xl font-semibold">{error || "Película no disponible"}</p>
-        <Link href="/" className="bg-nf-red hover:bg-nf-red-hover transition-colors px-6 py-2.5 rounded font-semibold">
+        <p className="text-xl font-semibold text-nf-cream">{error || "Película no disponible"}</p>
+        <Link href="/" className="bg-nf-red hover:bg-nf-red-hover text-nf-black transition-colors px-6 py-2.5 rounded-sm font-semibold">
           Volver al inicio
         </Link>
       </div>
@@ -95,99 +98,107 @@ export default function FichaPeliculaPage() {
     <main className="min-h-screen bg-nf-dark">
       <Link
         href="/"
-        className="fixed top-4 left-4 z-30 bg-black/60 hover:bg-black/80 transition-colors rounded-full w-9 h-9 flex items-center justify-center text-lg"
+        className="fixed top-4 left-4 z-30 bg-black/60 hover:bg-black/80 transition-colors rounded-full w-9 h-9 flex items-center justify-center text-lg text-nf-cream"
         aria-label="Volver"
       >
         ←
       </Link>
 
-      <section className="relative h-[70vw] max-h-[70vh] min-h-[380px] w-full overflow-hidden">
-        <img
-          src={pelicula.caratula || CARATULA_FALLBACK}
-          alt={pelicula.titulo}
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = CARATULA_FALLBACK;
-          }}
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-nf-dark via-black/40 to-black/30" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-transparent to-transparent" />
+      {/* ======================================== */}
+      {/* HERO — póster tras un velo de humo, no un banner plano */}
+      {/* ======================================== */}
+      <section className="relative w-full overflow-hidden pt-20 md:pt-0">
+        <div className="md:h-[60vh] md:min-h-[460px] relative">
+          <img
+            src={pelicula.caratula || CARATULA_FALLBACK}
+            alt=""
+            onError={(e) => { (e.target as HTMLImageElement).src = CARATULA_FALLBACK; }}
+            className="hidden md:block absolute inset-0 w-full h-full object-cover opacity-25 blur-xl scale-110"
+          />
+          <div className="hidden md:block absolute inset-0 bg-gradient-to-t from-nf-dark via-nf-dark/70 to-nf-dark/40" />
 
-        <div className="absolute bottom-0 left-0 right-0 px-4 md:px-12 pb-8 max-w-2xl fade-in">
-          <h1 className="text-3xl md:text-5xl font-black mb-3 drop-shadow-lg leading-tight">
-            {pelicula.titulo}
-          </h1>
-          <div className="flex items-center gap-3 text-sm md:text-base text-gray-200 mb-4">
-            <span>{pelicula.anio}</span>
-            <span className="border border-nf-gray-light px-1.5 text-xs rounded">
-              {pelicula.genero}
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href={`/ver/${pelicula.id}`}
-              className="flex items-center gap-2 bg-white text-black px-6 py-2.5 rounded font-semibold hover:bg-white/80 transition-colors"
-            >
-              <PlayIcon /> Reproducir
-            </Link>
-            <button
-              onClick={toggleMiLista}
-              className="flex items-center gap-2 bg-gray-500/40 text-white px-6 py-2.5 rounded font-semibold hover:bg-gray-500/60 transition-colors backdrop-blur-sm"
-            >
-              {enLista ? "✓ En mi lista" : "+ Mi lista"}
-            </button>
-            <button
-              onClick={compartir}
-              className="flex items-center gap-2 bg-gray-500/40 text-white px-6 py-2.5 rounded font-semibold hover:bg-gray-500/60 transition-colors backdrop-blur-sm"
-            >
-              Compartir
-            </button>
+          <div className="relative max-w-5xl mx-auto px-4 md:px-10 md:h-full flex flex-col md:flex-row md:items-end gap-6 md:gap-10 md:pb-10">
+            <div className="w-40 sm:w-52 md:w-56 flex-shrink-0 mx-auto md:mx-0 -mt-2 md:mt-0">
+              <div className="aspect-[2/3] rounded-sm overflow-hidden border border-white/10 shadow-2xl">
+                <img
+                  src={pelicula.caratula || CARATULA_FALLBACK}
+                  alt={pelicula.titulo}
+                  onError={(e) => { (e.target as HTMLImageElement).src = CARATULA_FALLBACK; }}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
+
+            <div className="fade-in text-center md:text-left">
+              <h1 className="font-display italic text-3xl md:text-5xl leading-[1.05] mb-3 text-nf-cream">
+                {pelicula.titulo}
+              </h1>
+              <div className="flex items-center justify-center md:justify-start gap-3 text-sm text-nf-gray-light mb-5">
+                <span>{pelicula.anio}</span>
+                <span className="w-1 h-1 rounded-full bg-nf-gray" />
+                <span className="border border-white/15 px-2 py-0.5 rounded-sm text-xs">
+                  {pelicula.genero}
+                </span>
+              </div>
+              <div className="flex flex-wrap justify-center md:justify-start gap-3">
+                <Link
+                  href={`/ver/${pelicula.id}`}
+                  className="flex items-center gap-2 bg-nf-red text-nf-black px-6 py-2.5 rounded-sm font-semibold hover:bg-nf-red-hover transition-colors"
+                >
+                  <Play className="w-4 h-4 fill-nf-black" /> Reproducir
+                </Link>
+                <button
+                  onClick={toggleMiLista}
+                  className="flex items-center gap-2 border border-white/20 hover:border-white/40 text-nf-cream px-5 py-2.5 rounded-sm font-semibold transition-colors"
+                >
+                  {enLista ? <><Check className="w-4 h-4" /> En mi lista</> : <><Plus className="w-4 h-4" /> Mi lista</>}
+                </button>
+                <button
+                  onClick={compartir}
+                  className="flex items-center gap-2 border border-white/20 hover:border-white/40 text-nf-cream px-5 py-2.5 rounded-sm font-semibold transition-colors"
+                >
+                  <Share2 className="w-4 h-4" /> {copiado ? "¡Copiado!" : "Compartir"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="px-4 md:px-12 py-8 max-w-3xl space-y-4">
-        <h2 className="text-lg font-semibold">Sinopsis</h2>
-        <p className="text-gray-200 leading-relaxed">
+      <div className="sprocket-rule text-nf-gray max-w-5xl mx-auto mt-8" />
+
+      <section className="max-w-5xl mx-auto px-4 md:px-10 py-8 space-y-3">
+        <h2 className="font-display italic text-lg text-nf-cream">Sinopsis</h2>
+        <p className="text-nf-gray-light leading-relaxed max-w-2xl">
           {pelicula.sinopsis || "Sin descripción disponible."}
         </p>
       </section>
 
       {relacionadas.length > 0 && (
-        <section className="px-4 md:px-12 pb-16">
-          <h2 className="text-lg font-semibold mb-3">Más de {pelicula.genero}</h2>
-          <div className="row-scroll flex gap-2 overflow-x-auto pb-4">
+        <section className="max-w-5xl mx-auto px-4 md:px-10 pb-16">
+          <h2 className="font-display italic text-lg text-nf-cream mb-4">Más de {pelicula.genero}</h2>
+          <div className="row-scroll flex gap-3 overflow-x-auto pb-4">
             {relacionadas.map((p) => (
               <Link
                 key={p.id}
                 href={`/pelicula/${p.id}`}
-                className="group relative flex-none w-[38vw] sm:w-[24vw] md:w-[16vw] lg:w-[13vw] transition-transform duration-300 hover:z-20 hover:scale-105"
+                className="group relative flex-none w-[34vw] sm:w-[20vw] md:w-[15vw] lg:w-[12vw]"
               >
-                <div className="rounded overflow-hidden aspect-[2/3] bg-neutral-800 shadow-lg">
+                <div className="rounded-sm overflow-hidden aspect-[2/3] bg-nf-surface border border-white/5 transition-colors duration-300 group-hover:border-nf-red/60">
                   <img
                     src={p.caratula || CARATULA_FALLBACK}
                     alt={p.titulo}
                     loading="lazy"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = CARATULA_FALLBACK;
-                    }}
-                    className="w-full h-full object-cover transition-all duration-300 group-hover:brightness-75"
+                    onError={(e) => { (e.target as HTMLImageElement).src = CARATULA_FALLBACK; }}
+                    className="w-full h-full object-cover"
                   />
                 </div>
-                <p className="text-xs text-nf-gray-light mt-1 line-clamp-1">{p.titulo}</p>
+                <p className="text-xs text-nf-gray-light mt-1.5 line-clamp-1">{p.titulo}</p>
               </Link>
             ))}
           </div>
         </section>
       )}
     </main>
-  );
-}
-
-function PlayIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M8 5v14l11-7z" />
-    </svg>
   );
 }

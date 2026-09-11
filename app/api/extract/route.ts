@@ -4,20 +4,13 @@ import { NextRequest, NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-// Servidores soportados
 const SERVIDORES = [
-  "vimeos.net",
-  "vimeos",
-  "goodstream.one",
-  "goodstream",
-  "hlswish.com",
-  "hlswish",
-  "voe.sx",
-  "voe",
-  "videoapp.zip",
-  "videoapp",
-  "dood",
-  "d000d",
+  "vimeos.net", "vimeos",
+  "goodstream.one", "goodstream",
+  "hlswish.com", "hlswish",
+  "voe.sx", "voe",
+  "videoapp.zip", "videoapp",
+  "dood", "d000d",
   "dr0pstream",
 ];
 
@@ -36,17 +29,13 @@ export async function POST(req: NextRequest) {
 
     if (!esServidorSoportado(url)) {
       return NextResponse.json(
-        { 
-          error: "Servidor no soportado",
-          servidores_soportados: SERVIDORES
-        },
+        { error: "Servidor no soportado", servidores_soportados: SERVIDORES },
         { status: 400 }
       );
     }
 
     console.log(`🔍 Procesando: ${url}`);
 
-    // PASO 1: Petición inicial al servidor
     const pageResponse = await fetch(url, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -63,6 +52,7 @@ export async function POST(req: NextRequest) {
     }
 
     const html = await pageResponse.text();
+    const origin = new URL(url).origin;
 
     // ========================================
     // PATRÓN 1: DoodStream / Vimeos (pass_md5)
@@ -70,16 +60,11 @@ export async function POST(req: NextRequest) {
     const passMd5Match = html.match(/(\/pass_md5\/.*?)'.*(\?token=.*?expiry=)/);
     
     if (passMd5Match) {
-      console.log("✅ Patrón pass_md5 detectado (DoodStream/Vimeos)");
+      console.log("✅ Patrón pass_md5 detectado");
       
       const passMd5Path = passMd5Match[1];
       const tokenPart = passMd5Match[2];
-
-      const origin = new URL(url).origin;
-      const passUrl = passMd5Path.startsWith("http") 
-        ? passMd5Path 
-        : `${origin}${passMd5Path}`;
-      
+      const passUrl = passMd5Path.startsWith("http") ? passMd5Path : `${origin}${passMd5Path}`;
       const referer = `${origin}/`;
 
       const passResponse = await fetch(passUrl, {
@@ -102,61 +87,87 @@ export async function POST(req: NextRequest) {
             "Referer": referer,
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
           },
-          mensaje: "✅ Link extraído correctamente (DoodStream/Vimeos)",
+          mensaje: "✅ Link extraído (DoodStream/Vimeos)",
         });
       }
     }
 
     // ========================================
-    // PATRÓN 2: iframe con source (voe.sx, goodstream, etc.)
+    // PATRÓN 2: m3u8 (EL VIDEO REAL) ← PRIMERO
     // ========================================
-    const iframeMatch = html.match(/<iframe[^>]*src=["']([^"']*\.m3u8[^"']*)["'][^>]*>/i) ||
-                        html.match(/<source[^>]*src=["']([^"']*)["'][^>]*>/i) ||
-                        html.match(/file\s*:\s*["']([^"']*)["']/gi);
-
-    if (iframeMatch) {
-      console.log("✅ Patrón iframe/source detectado");
+    const m3u8Match = html.match(/(https?:\/\/[^"'\s\\]*\.m3u8[^"'\s\\]*)/i);
+    
+    if (m3u8Match) {
+      console.log("✅ Patrón m3u8 detectado:", m3u8Match[1]);
       
-      const linkDirecto = iframeMatch[1];
-      const origin = new URL(url).origin;
-
       return NextResponse.json({
         original: url,
-        link_directo: linkDirecto.startsWith("http") ? linkDirecto : `${origin}${linkDirecto}`,
+        link_directo: m3u8Match[1].replace(/\\/g, ""),
         headers: {
           "Referer": `${origin}/`,
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         },
-        mensaje: "✅ Link extraído correctamente (iframe/source)",
+        mensaje: "✅ Link HLS (.m3u8) extraído",
       });
     }
 
     // ========================================
-    // PATRÓN 3: HLS (m3u8) en el HTML
+    // PATRÓN 3: file: con .mp4 o video (NO .vtt)
     // ========================================
-    const hlsMatch = html.match(/(https?:\/\/[^"'\s]*\.m3u8[^"'\s]*)/i);
+    const fileMatches = html.match(/file\s*:\s*["']([^"']*\.(mp4|m3u8|webm)[^"']*)["']/gi);
     
-    if (hlsMatch) {
-      console.log("✅ Patrón HLS (m3u8) detectado");
+    if (fileMatches) {
+      console.log(`✅ Encontrados ${fileMatches.length} archivos`);
+      
+      for (const match of fileMatches) {
+        const urlMatch = match.match(/["']([^"']*)["']/);
+        if (urlMatch) {
+          const linkDirecto = urlMatch[1];
+          return NextResponse.json({
+            original: url,
+            link_directo: linkDirecto,
+            headers: {
+              "Referer": `${origin}/`,
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            },
+            mensaje: "✅ Link de video extraído (file:)",
+          });
+        }
+      }
+    }
+
+    // ========================================
+    // PATRÓN 4: source con video
+    // ========================================
+    const sourceMatch = html.match(/<source[^>]*src=["']([^"']*\.(mp4|m3u8|webm)[^"']*)["'][^>]*>/i);
+    
+    if (sourceMatch) {
+      console.log("✅ Patrón source detectado");
       
       return NextResponse.json({
         original: url,
-        link_directo: hlsMatch[1],
+        link_directo: sourceMatch[1],
         headers: {
-          "Referer": new URL(url).origin + "/",
+          "Referer": `${origin}/`,
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         },
-        mensaje: "✅ Link HLS extraído correctamente",
+        mensaje: "✅ Link extraído (source)",
       });
     }
 
     // ========================================
-    // NO SE ENCONTRÓ NINGÚN PATRÓN
+    // NO SE ENCONTRÓ
     // ========================================
     return NextResponse.json(
       { 
-        error: "No se pudo extraer el link. El servidor puede haber cambiado.",
-        hint: "Prueba con otro servidor del reproductor"
+        error: "No se pudo extraer el link del video",
+        hint: "El servidor puede tener el video en otro formato. Prueba con otro servidor.",
+        debug: {
+          tiene_pass_md5: !!passMd5Match,
+          tiene_m3u8: !!m3u8Match,
+          tiene_file: !!fileMatches,
+          tiene_source: !!sourceMatch,
+        }
       },
       { status: 404 }
     );

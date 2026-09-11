@@ -184,6 +184,18 @@ export default function AdminPage() {
           >
             + Agregar pelicula
           </Link>
+          <Link
+            href="/agregar-auto"
+            className="bg-purple-600 hover:bg-purple-700 transition-colors px-4 py-2 rounded font-semibold text-sm"
+          >
+            🤖 Buscar automatico
+          </Link>
+          <Link
+            href="/admin/scrapear-estrenos"
+            className="bg-green-600 hover:bg-green-700 transition-colors px-4 py-2 rounded font-semibold text-sm"
+          >
+            📅 Estrenos 2026
+          </Link>
         </div>
       </div>
 

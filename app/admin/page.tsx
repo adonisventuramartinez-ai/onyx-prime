@@ -191,6 +191,12 @@ export default function AdminPage() {
             🤖 Buscar automatico
           </Link>
           <Link
+            href="/admin/limpiador"
+            className="bg-yellow-600 hover:bg-yellow-700 transition-colors px-4 py-2 rounded font-semibold text-sm"
+          >
+            🧹 Limpiador Dood
+          </Link>
+          <Link
             href="/admin/scrapear-estrenos"
             className="bg-green-600 hover:bg-green-700 transition-colors px-4 py-2 rounded font-semibold text-sm"
           >

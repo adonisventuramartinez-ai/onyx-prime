@@ -8,9 +8,9 @@ import type { Pelicula } from "@/lib/db";
 import { CARATULA_FALLBACK } from "@/lib/db";
 
 // ============================================
-// NUEVA FUNCIÓN: Detecta si es un iframe
+// DETECTAR TIPO DE LINK
 // ============================================
-function esLinkEmbed(url: string): boolean {
+function esLinkIframe(url: string): boolean {
   if (!url) return false;
   const embedPatterns = [
     "player.vimeo.com",
@@ -18,10 +18,19 @@ function esLinkEmbed(url: string): boolean {
     "youtu.be",
     "dailymotion.com/embed",
     "drive.google.com/file/d/",
-    "supabase.co/storage",
     "iframe.mediadelivery.net",
   ];
   return embedPatterns.some((p) => url.includes(p));
+}
+
+function esLinkHLS(url: string): boolean {
+  if (!url) return false;
+  return url.includes(".m3u8");
+}
+
+function esLinkMP4(url: string): boolean {
+  if (!url) return false;
+  return url.includes(".mp4") || url.includes(".webm") || url.includes(".mkv");
 }
 
 export default function VerPeliculaPage() {
@@ -38,7 +47,11 @@ export default function VerPeliculaPage() {
   const [progreso, setProgreso] = useState(0);
   const [duracion, setDuracion] = useState(0);
   const [volumen, setVolumen] = useState(1);
+  const [usandoHLS, setUsandoHLS] = useState(false);
 
+  // ============================================
+  // CARGAR PELÍCULA
+  // ============================================
   useEffect(() => {
     fetch(`/api/peliculas/${id}`)
       .then((res) => {
@@ -55,6 +68,65 @@ export default function VerPeliculaPage() {
       });
   }, [id]);
 
+  // ============================================
+  // CARGAR HLS.JS SI ES NECESARIO
+  // ============================================
+  useEffect(() => {
+    if (!pelicula?.link_directo) return;
+    if (!esLinkHLS(pelicula.link_directo)) return;
+
+    const video = videoRef.current;
+    if (!video) return;
+
+    // Cargar hls.js desde CDN dinámicamente
+    const cargarHLS = async () => {
+      if (!(window as any).Hls) {
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js";
+        document.head.appendChild(script);
+        await new Promise((resolve) => {
+          script.onload = resolve;
+        });
+      }
+
+      const Hls = (window as any).Hls;
+
+      if (Hls.isSupported()) {
+        const hls = new Hls({
+          xhrSetup: (xhr: XMLHttpRequest) => {
+            // Enviar headers que el servidor requiere
+            xhr.setRequestHeader("Referer", "https://vimeos.net/");
+          },
+        });
+
+        // Usar proxy interno para evitar CORS
+        const proxyUrl = `/api/proxy-video?url=${encodeURIComponent(pelicula.link_directo)}`;
+        hls.loadSource(proxyUrl);
+        hls.attachMedia(video);
+        setUsandoHLS(true);
+
+        hls.on(Hls.Events.ERROR, (_event: any, data: any) => {
+          if (data.fatal) {
+            console.error("Error HLS:", data);
+            setError("Error al cargar el video. Intenta de nuevo.");
+          }
+        });
+
+        return () => hls.destroy();
+      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        // Safari puede reproducir HLS nativamente
+        const proxyUrl = `/api/proxy-video?url=${encodeURIComponent(pelicula.link_directo)}`;
+        video.src = proxyUrl;
+        setUsandoHLS(true);
+      }
+    };
+
+    cargarHLS();
+  }, [pelicula]);
+
+  // ============================================
+  // REGISTRAR HISTORIAL
+  // ============================================
   const registrarHistorial = () => {
     if (historialRegistrado.current) return;
     historialRegistrado.current = true;
@@ -109,8 +181,11 @@ export default function VerPeliculaPage() {
 
   const link = pelicula.link_directo;
   const tieneLink = Boolean(link);
-  const esEmbed = tieneLink ? esLinkEmbed(link) : false;
+  const esIframe = tieneLink ? esLinkIframe(link) : false;
 
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <main className="min-h-screen bg-black flex flex-col">
       <button
@@ -128,27 +203,30 @@ export default function VerPeliculaPage() {
       >
         {tieneLink ? (
           <>
-            {esEmbed ? (
+            {esIframe ? (
               // ============================================
-              // REPRODUCTOR IFRAME (NUEVO)
+              // REPRODUCTOR IFRAME (YouTube, Vimeo, etc.)
               // ============================================
               <iframe
                 src={link}
                 className="w-full h-full max-h-screen border-0"
                 allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
                 allowFullScreen
-                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
                 loading="lazy"
                 title="Reproductor de video"
               />
             ) : (
               // ============================================
-              // REPRODUCTOR VIDEO HTML5
+              // REPRODUCTOR HTML5 (MP4, M3U8, WEBM)
               // ============================================
               <>
                 <video
                   ref={videoRef}
-                  src={link}
+                  src={
+                    !usandoHLS && !esLinkHLS(link)
+                      ? `/api/proxy-video?url=${encodeURIComponent(link)}`
+                      : undefined
+                  }
                   poster={pelicula.caratula || CARATULA_FALLBACK}
                   className="w-full h-full max-h-screen"
                   onClick={togglePlay}
@@ -158,8 +236,17 @@ export default function VerPeliculaPage() {
                   onLoadedMetadata={(e) => setDuracion(e.currentTarget.duration)}
                   onVolumeChange={(e) => setVolumen(e.currentTarget.volume)}
                   autoPlay
+                  playsInline
                 />
 
+                {/* Indicador de tipo de video */}
+                {usandoHLS && (
+                  <div className="absolute top-16 left-4 z-20 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                    HLS (.m3u8)
+                  </div>
+                )}
+
+                {/* Controles */}
                 <div
                   className={`absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-transparent to-black/40 transition-opacity duration-300 pointer-events-none ${
                     mostrarControles ? "opacity-100" : "opacity-0"

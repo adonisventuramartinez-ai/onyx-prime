@@ -20,34 +20,25 @@ interface PeliculaEncontrada {
 export default function AgregarAutoPage() {
   const router = useRouter();
   const [nombre, setNombre] = useState("");
-  const [link, setLink] = useState("");
   const [cargando, setCargando] = useState(false);
   const [resultado, setResultado] = useState<PeliculaEncontrada | null>(null);
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [guardado, setGuardado] = useState(false);
-  const [usarLink, setUsarLink] = useState(false);
 
   const buscarPelicula = async () => {
+    if (!nombre.trim()) {
+      setError("Escribe el nombre de la película");
+      return;
+    }
+
     setCargando(true);
     setError("");
     setResultado(null);
     setGuardado(false);
 
     try {
-      let url = `/api/buscar-cinecalidad?`;
-      
-      if (usarLink && link.trim()) {
-        url += `link=${encodeURIComponent(link.trim())}`;
-      } else if (nombre.trim()) {
-        url += `nombre=${encodeURIComponent(nombre.trim())}`;
-      } else {
-        setError("Escribe el nombre o pega el link de la película");
-        setCargando(false);
-        return;
-      }
-
-      const res = await fetch(url);
+      const res = await fetch(`/api/buscar-pelicula?nombre=${encodeURIComponent(nombre)}`);
       const data = await res.json();
 
       if (!res.ok) {
@@ -55,14 +46,7 @@ export default function AgregarAutoPage() {
         return;
       }
 
-      if (data.pelicula) {
-        setResultado(data.pelicula);
-        if (!data.pelicula.link_directo) {
-          setError("⚠️ No se encontró link directo. Se usará la página de detalle.");
-        }
-      } else {
-        setError("No se encontró la película");
-      }
+      setResultado(data.pelicula);
     } catch (err) {
       setError("Error al buscar la película");
     } finally {
@@ -79,12 +63,7 @@ export default function AgregarAutoPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          titulo: resultado.titulo,
-          anio: resultado.anio,
-          genero: resultado.genero,
-          sinopsis: resultado.sinopsis,
-          caratula: resultado.caratula,
-          link_directo: resultado.link_directo || link || "",
+          ...resultado,
           fuente: "auto",
         }),
       });
@@ -93,7 +72,8 @@ export default function AgregarAutoPage() {
         setGuardado(true);
         setTimeout(() => router.push("/admin"), 1500);
       } else {
-        setError("Error al guardar la película");
+        const data = await res.json();
+        setError(data.error || "Error al guardar");
       }
     } catch (err) {
       setError("Error al guardar");
@@ -103,11 +83,11 @@ export default function AgregarAutoPage() {
   };
 
   return (
-    <main className="min-h-screen bg-nf-dark px-4 py-8 md:py-12">
+    <main className="min-h-screen bg-[#141414] text-white p-4">
       <div className="max-w-3xl mx-auto">
         <Link
           href="/admin"
-          className="inline-flex items-center gap-2 text-nf-gray-light hover:text-white mb-6 transition-colors"
+          className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" /> Volver al panel
         </Link>
@@ -115,49 +95,19 @@ export default function AgregarAutoPage() {
         <h1 className="text-2xl font-bold mb-2">
           Buscar <span className="text-purple-400">Automático</span>
         </h1>
-        <p className="text-nf-gray-light text-sm mb-6">
-          Escribe el nombre de la película o pega el link de Cinecalidad para obtener carátula, sinopsis, año y link directo
+        <p className="text-gray-400 text-sm mb-6">
+          Escribe el nombre de la película. El sistema buscará en TMDB + Cinecalidad + CineHDPlus y extraerá el link de DoodStream.
         </p>
 
-        <div className="flex gap-4 mb-4">
-          <button
-            onClick={() => setUsarLink(false)}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-              !usarLink ? "bg-purple-600 text-white" : "bg-white/10 text-nf-gray-light hover:bg-white/20"
-            }`}
-          >
-            🔍 Buscar por nombre
-          </button>
-          <button
-            onClick={() => setUsarLink(true)}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-              usarLink ? "bg-purple-600 text-white" : "bg-white/10 text-nf-gray-light hover:bg-white/20"
-            }`}
-          >
-            🔗 Pegar link
-          </button>
-        </div>
-
         <div className="flex gap-3 mb-6">
-          {usarLink ? (
-            <input
-              type="text"
-              placeholder="https://www.cinecalidad.am/ver-pelicula/rent-free/"
-              value={link}
-              onChange={(e) => setLink(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && buscarPelicula()}
-              className="flex-1 bg-white/5 border border-white/15 rounded-lg px-4 py-3 focus:border-white focus:outline-none transition-colors text-white placeholder-gray-500"
-            />
-          ) : (
-            <input
-              type="text"
-              placeholder="Ej: Dune, Oppenheimer, Barbie..."
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && buscarPelicula()}
-              className="flex-1 bg-white/5 border border-white/15 rounded-lg px-4 py-3 focus:border-white focus:outline-none transition-colors text-white placeholder-gray-500"
-            />
-          )}
+          <input
+            type="text"
+            placeholder="Ej: Toy Story 5, Oppenheimer, Barbie..."
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && buscarPelicula()}
+            className="flex-1 bg-white/5 border border-white/15 rounded-lg px-4 py-3 focus:border-purple-500 focus:outline-none text-white placeholder-gray-500"
+          />
           <button
             onClick={buscarPelicula}
             disabled={cargando}
@@ -169,11 +119,7 @@ export default function AgregarAutoPage() {
         </div>
 
         {error && (
-          <div className={`rounded-xl p-4 mb-6 flex items-start gap-3 ${
-            error.includes("⚠️") 
-              ? "bg-yellow-500/10 border border-yellow-500/30 text-yellow-400" 
-              : "bg-red-500/10 border border-red-500/30 text-red-400"
-          }`}>
+          <div className="rounded-xl p-4 mb-6 flex items-start gap-3 bg-red-500/10 border border-red-500/30 text-red-400">
             <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
@@ -182,7 +128,7 @@ export default function AgregarAutoPage() {
         {cargando && (
           <div className="text-center py-12">
             <Loader2 className="w-12 h-12 animate-spin text-purple-400 mx-auto mb-4" />
-            <p className="text-gray-400">Buscando en TMDB y Cinecalidad...</p>
+            <p className="text-gray-400">Buscando y extrayendo link...</p>
           </div>
         )}
 
@@ -240,7 +186,7 @@ export default function AgregarAutoPage() {
                       <ExternalLink className="w-3 h-3 flex-shrink-0" />
                     </a>
                   ) : (
-                    <p className="text-yellow-400 text-sm">⚠️ No se encontró link directo. Puedes agregarlo manualmente después.</p>
+                    <p className="text-yellow-400 text-sm">⚠️ No se encontró link de video</p>
                   )}
                 </div>
 

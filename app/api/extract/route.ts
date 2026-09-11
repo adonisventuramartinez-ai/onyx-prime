@@ -4,22 +4,26 @@ import { NextRequest, NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-// Servidores soportados (todos usan el mismo patrón pass_md5)
-const SERVIDORES_SOPORTADOS = [
-  "dood",
-  "dr0pstream",
-  "dropstream",
-  "streamwish",
-  "vidhide",
-  "lulustream",
+// Servidores soportados
+const SERVIDORES = [
+  "vimeos.net",
+  "vimeos",
+  "goodstream.one",
+  "goodstream",
+  "hlswish.com",
+  "hlswish",
+  "voe.sx",
   "voe",
+  "videoapp.zip",
+  "videoapp",
+  "dood",
+  "d000d",
+  "dr0pstream",
 ];
-
-const DOOD_BASE_URL = "https://d000d.com";
 
 function esServidorSoportado(url: string): boolean {
   const urlLower = url.toLowerCase();
-  return SERVIDORES_SOPORTADOS.some((s) => urlLower.includes(s));
+  return SERVIDORES.some((s) => urlLower.includes(s));
 }
 
 export async function POST(req: NextRequest) {
@@ -33,8 +37,8 @@ export async function POST(req: NextRequest) {
     if (!esServidorSoportado(url)) {
       return NextResponse.json(
         { 
-          error: "Servidor no soportado. Prueba con DoodStream, Dropstream, StreamWish, Vidhide o LuluStream.",
-          servidores_soportados: SERVIDORES_SOPORTADOS
+          error: "Servidor no soportado",
+          servidores_soportados: SERVIDORES
         },
         { status: 400 }
       );
@@ -42,7 +46,7 @@ export async function POST(req: NextRequest) {
 
     console.log(`🔍 Procesando: ${url}`);
 
-    // PASO 1: Petición inicial
+    // PASO 1: Petición inicial al servidor
     const pageResponse = await fetch(url, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -53,74 +57,110 @@ export async function POST(req: NextRequest) {
 
     if (!pageResponse.ok) {
       return NextResponse.json(
-        { error: `Error al acceder al servidor: ${pageResponse.status}` },
+        { error: `Error al acceder: ${pageResponse.status}` },
         { status: 500 }
       );
     }
 
     const html = await pageResponse.text();
 
-    // PASO 2: Extraer pass_md5 y token (patrón universal)
-    const pattern = /(\/pass_md5\/.*?)'.*(\?token=.*?expiry=)/;
-    const match = html.match(pattern);
-
-    if (!match) {
-      // Intentar con otros patrones alternativos
-      const altPattern = /pass_md5\/([a-zA-Z0-9]+)/;
-      const altMatch = html.match(altPattern);
+    // ========================================
+    // PATRÓN 1: DoodStream / Vimeos (pass_md5)
+    // ========================================
+    const passMd5Match = html.match(/(\/pass_md5\/.*?)'.*(\?token=.*?expiry=)/);
+    
+    if (passMd5Match) {
+      console.log("✅ Patrón pass_md5 detectado (DoodStream/Vimeos)");
       
-      if (!altMatch) {
-        return NextResponse.json(
-          { 
-            error: "No se pudo extraer el patrón del servidor. El sitio puede haber cambiado.",
-            hint: "Prueba con otro link de DoodStream"
+      const passMd5Path = passMd5Match[1];
+      const tokenPart = passMd5Match[2];
+
+      const origin = new URL(url).origin;
+      const passUrl = passMd5Path.startsWith("http") 
+        ? passMd5Path 
+        : `${origin}${passMd5Path}`;
+      
+      const referer = `${origin}/`;
+
+      const passResponse = await fetch(passUrl, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "Referer": referer,
+          "Range": "bytes=0-",
+        },
+      });
+
+      if (passResponse.ok) {
+        const passText = await passResponse.text();
+        const timestamp = Math.floor(Date.now() / 1000).toString();
+        const finalUrl = `${passText}123456789${tokenPart}${timestamp}`;
+
+        return NextResponse.json({
+          original: url,
+          link_directo: finalUrl,
+          headers: {
+            "Referer": referer,
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
           },
-          { status: 404 }
-        );
+          mensaje: "✅ Link extraído correctamente (DoodStream/Vimeos)",
+        });
       }
     }
 
-    const passMd5Path = match ? match[1] : "";
-    const tokenPart = match ? match[2] : "";
+    // ========================================
+    // PATRÓN 2: iframe con source (voe.sx, goodstream, etc.)
+    // ========================================
+    const iframeMatch = html.match(/<iframe[^>]*src=["']([^"']*\.m3u8[^"']*)["'][^>]*>/i) ||
+                        html.match(/<source[^>]*src=["']([^"']*)["'][^>]*>/i) ||
+                        html.match(/file\s*:\s*["']([^"']*)["']/gi);
 
-    // PASO 3: Llamar a pass_md5
-    const origin = new URL(url).origin;
-    const passUrl = passMd5Path.startsWith("http") 
-      ? passMd5Path 
-      : `${origin}${passMd5Path}`;
-    
-    const referer = `${origin}/`;
+    if (iframeMatch) {
+      console.log("✅ Patrón iframe/source detectado");
+      
+      const linkDirecto = iframeMatch[1];
+      const origin = new URL(url).origin;
 
-    const passResponse = await fetch(passUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Referer": referer,
-        "Range": "bytes=0-",
-      },
-    });
-
-    if (!passResponse.ok) {
-      return NextResponse.json(
-        { error: `Error al obtener el link: ${passResponse.status}` },
-        { status: 500 }
-      );
+      return NextResponse.json({
+        original: url,
+        link_directo: linkDirecto.startsWith("http") ? linkDirecto : `${origin}${linkDirecto}`,
+        headers: {
+          "Referer": `${origin}/`,
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        },
+        mensaje: "✅ Link extraído correctamente (iframe/source)",
+      });
     }
 
-    const passText = await passResponse.text();
+    // ========================================
+    // PATRÓN 3: HLS (m3u8) en el HTML
+    // ========================================
+    const hlsMatch = html.match(/(https?:\/\/[^"'\s]*\.m3u8[^"'\s]*)/i);
+    
+    if (hlsMatch) {
+      console.log("✅ Patrón HLS (m3u8) detectado");
+      
+      return NextResponse.json({
+        original: url,
+        link_directo: hlsMatch[1],
+        headers: {
+          "Referer": new URL(url).origin + "/",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        },
+        mensaje: "✅ Link HLS extraído correctamente",
+      });
+    }
 
-    // PASO 4: Construir link final
-    const timestamp = Math.floor(Date.now() / 1000).toString();
-    const finalUrl = `${passText}123456789${tokenPart}${timestamp}`;
-
-    return NextResponse.json({
-      original: url,
-      link_directo: finalUrl,
-      headers: {
-        "Referer": referer,
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    // ========================================
+    // NO SE ENCONTRÓ NINGÚN PATRÓN
+    // ========================================
+    return NextResponse.json(
+      { 
+        error: "No se pudo extraer el link. El servidor puede haber cambiado.",
+        hint: "Prueba con otro servidor del reproductor"
       },
-      mensaje: "✅ Link extraído correctamente",
-    });
+      { status: 404 }
+    );
+
   } catch (error: any) {
     console.error("Error en extract:", error);
     return NextResponse.json(

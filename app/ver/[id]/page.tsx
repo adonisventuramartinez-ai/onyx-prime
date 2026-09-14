@@ -2,56 +2,38 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import type { Pelicula } from "@/lib/db";
 import { CARATULA_FALLBACK } from "@/lib/db";
 
-// ============================================
-// DETECTAR TIPO DE LINK
-// ============================================
-function esLinkIframe(url: string): boolean {
-  if (!url) return false;
-  const embedPatterns = [
-    "player.vimeo.com",
-    "youtube.com/embed",
-    "youtu.be",
-    "dailymotion.com/embed",
-    "drive.google.com/file/d/",
-    "iframe.mediadelivery.net",
-  ];
-  return embedPatterns.some((p) => url.includes(p));
+interface Pelicula {
+  id: string;
+  tmdb_id: number | null;
+  titulo: string;
+  anio: number | string;
+  genero: string;
+  sinopsis: string;
+  caratula: string;
+  link_directo: string;
 }
 
-function esLinkHLS(url: string): boolean {
-  if (!url) return false;
-  return url.includes(".m3u8");
-}
-
-function esLinkMP4(url: string): boolean {
-  if (!url) return false;
-  return url.includes(".mp4") || url.includes(".webm") || url.includes(".mkv");
-}
+// Lista de proveedores de embeds (si uno falla, prueba con otro)
+const PROVEEDORES = [
+  (id: number) => `https://vidsrc.xyz/embed/movie/${id}`,
+  (id: number) => `https://vidlink.pro/movie/${id}`,
+  (id: number) => `https://www.2embed.ru/embed/tmdb/movie?id=${id}`,
+  (id: number) => `https://multiembed.mov/?video_id=${id}`,
+];
 
 export default function VerPeliculaPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const historialRegistrado = useRef(false);
 
   const [pelicula, setPelicula] = useState<Pelicula | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
-  const [reproduciendo, setReproduciendo] = useState(false);
-  const [mostrarControles, setMostrarControles] = useState(true);
-  const [progreso, setProgreso] = useState(0);
-  const [duracion, setDuracion] = useState(0);
-  const [volumen, setVolumen] = useState(1);
-  const [usandoHLS, setUsandoHLS] = useState(false);
+  const [proveedorIndex, setProveedorIndex] = useState(0);
 
-  // ============================================
-  // CARGAR PELÍCULA
-  // ============================================
   useEffect(() => {
     fetch(`/api/peliculas/${id}`)
       .then((res) => {
@@ -68,99 +50,10 @@ export default function VerPeliculaPage() {
       });
   }, [id]);
 
-  // ============================================
-  // CARGAR HLS.JS SI ES NECESARIO
-  // ============================================
-  useEffect(() => {
-    if (!pelicula?.link_directo) return;
-    if (!esLinkHLS(pelicula.link_directo)) return;
-
-    const video = videoRef.current;
-    if (!video) return;
-
-    // Cargar hls.js desde CDN dinámicamente
-    const cargarHLS = async () => {
-      if (!(window as any).Hls) {
-        const script = document.createElement("script");
-        script.src = "https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js";
-        document.head.appendChild(script);
-        await new Promise((resolve) => {
-          script.onload = resolve;
-        });
-      }
-
-      const Hls = (window as any).Hls;
-
-      if (Hls.isSupported()) {
-        const hls = new Hls({
-          xhrSetup: (xhr: XMLHttpRequest) => {
-            // Enviar headers que el servidor requiere
-            xhr.setRequestHeader("Referer", "https://vimeos.net/");
-          },
-        });
-
-        // Usar proxy interno para evitar CORS
-        const proxyUrl = `/api/proxy-video?url=${encodeURIComponent(pelicula.link_directo)}`;
-        hls.loadSource(proxyUrl);
-        hls.attachMedia(video);
-        setUsandoHLS(true);
-
-        hls.on(Hls.Events.ERROR, (_event: any, data: any) => {
-          if (data.fatal) {
-            console.error("Error HLS:", data);
-            setError("Error al cargar el video. Intenta de nuevo.");
-          }
-        });
-
-        return () => hls.destroy();
-      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        // Safari puede reproducir HLS nativamente
-        const proxyUrl = `/api/proxy-video?url=${encodeURIComponent(pelicula.link_directo)}`;
-        video.src = proxyUrl;
-        setUsandoHLS(true);
-      }
-    };
-
-    cargarHLS();
-  }, [pelicula]);
-
-  // ============================================
-  // REGISTRAR HISTORIAL
-  // ============================================
-  const registrarHistorial = () => {
-    if (historialRegistrado.current) return;
-    historialRegistrado.current = true;
-    fetch("/api/historial", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pelicula_id: id }),
-    }).catch(() => {});
-  };
-
-  const togglePlay = () => {
-    const video = videoRef.current;
-    if (!video) return;
-    if (video.paused) {
-      video.play();
-      setReproduciendo(true);
-      registrarHistorial();
-    } else {
-      video.pause();
-      setReproduciendo(false);
-    }
-  };
-
-  const formatTiempo = (segundos: number) => {
-    if (!isFinite(segundos)) return "0:00";
-    const m = Math.floor(segundos / 60);
-    const s = Math.floor(segundos % 60).toString().padStart(2, "0");
-    return `${m}:${s}`;
-  };
-
   if (cargando) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-nf-red border-t-transparent rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-[#E50914] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -168,10 +61,10 @@ export default function VerPeliculaPage() {
   if (error || !pelicula) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4 text-center px-4">
-        <p className="text-xl font-semibold">{error || "Película no disponible"}</p>
+        <p className="text-xl font-semibold text-white">{error || "Película no disponible"}</p>
         <button
           onClick={() => router.push("/")}
-          className="bg-nf-red hover:bg-nf-red-hover transition-colors px-6 py-2.5 rounded font-semibold"
+          className="bg-[#E50914] hover:bg-[#b20710] transition-colors px-6 py-2.5 rounded font-semibold text-white"
         >
           Volver al inicio
         </button>
@@ -179,178 +72,69 @@ export default function VerPeliculaPage() {
     );
   }
 
-  const link = pelicula.link_directo;
-  const tieneLink = Boolean(link);
-  const esIframe = tieneLink ? esLinkIframe(link) : false;
+  const tmdbId = pelicula.tmdb_id;
 
-  // ============================================
-  // RENDER
-  // ============================================
+  // Si no hay tmdb_id, mostrar aviso
+  if (!tmdbId) {
+    return (
+      <main className="min-h-screen bg-black flex flex-col">
+        <button
+          onClick={() => router.push(`/pelicula/${id}`)}
+          className="fixed top-4 left-4 z-30 bg-black/60 hover:bg-black/80 transition-colors rounded-full w-9 h-9 flex items-center justify-center text-lg text-white"
+        >
+          ←
+        </button>
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-4">
+          <img
+            src={pelicula.caratula || CARATULA_FALLBACK}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover opacity-20"
+          />
+          <div className="relative z-10">
+            <p className="text-xl font-semibold text-white">
+              Esta película no tiene un ID de TMDB asignado
+            </p>
+            <p className="text-gray-400 text-sm mt-2">
+              Edítala en el panel de admin para agregarlo y poder reproducirla.
+            </p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  const embedUrl = PROVEEDORES[proveedorIndex](tmdbId);
+
   return (
     <main className="min-h-screen bg-black flex flex-col">
       <button
         onClick={() => router.push(`/pelicula/${id}`)}
-        className="fixed top-4 left-4 z-30 bg-black/60 hover:bg-black/80 transition-colors rounded-full w-9 h-9 flex items-center justify-center text-lg"
-        aria-label="Volver a la ficha"
+        className="fixed top-4 left-4 z-30 bg-black/60 hover:bg-black/80 transition-colors rounded-full w-9 h-9 flex items-center justify-center text-lg text-white"
+        aria-label="Volver"
       >
         ←
       </button>
 
-      <div
-        className="relative w-full flex-1 bg-black group flex items-center justify-center"
-        onMouseMove={() => setMostrarControles(true)}
-        onMouseLeave={() => reproduciendo && setMostrarControles(false)}
-      >
-        {tieneLink ? (
-          <>
-            {esIframe ? (
-              // ============================================
-              // REPRODUCTOR IFRAME (YouTube, Vimeo, etc.)
-              // ============================================
-              <iframe
-                src={link}
-                className="w-full h-full max-h-screen border-0"
-                allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-                allowFullScreen
-                loading="lazy"
-                title="Reproductor de video"
-              />
-            ) : (
-              // ============================================
-              // REPRODUCTOR HTML5 (MP4, M3U8, WEBM)
-              // ============================================
-              <>
-                <video
-                  ref={videoRef}
-                  src={
-                    !usandoHLS && !esLinkHLS(link)
-                      ? `/api/proxy-video?url=${encodeURIComponent(link)}`
-                      : undefined
-                  }
-                  poster={pelicula.caratula || CARATULA_FALLBACK}
-                  className="w-full h-full max-h-screen"
-                  onClick={togglePlay}
-                  onPlay={() => { setReproduciendo(true); registrarHistorial(); }}
-                  onPause={() => setReproduciendo(false)}
-                  onTimeUpdate={(e) => setProgreso(e.currentTarget.currentTime)}
-                  onLoadedMetadata={(e) => setDuracion(e.currentTarget.duration)}
-                  onVolumeChange={(e) => setVolumen(e.currentTarget.volume)}
-                  autoPlay
-                  playsInline
-                />
+      <div className="relative w-full flex-1 bg-black flex items-center justify-center">
+        <iframe
+          src={embedUrl}
+          className="w-full h-full max-h-screen border-0"
+          allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+          allowFullScreen
+          loading="lazy"
+          title={pelicula.titulo}
+        />
+      </div>
 
-                {/* Indicador de tipo de video */}
-                {usandoHLS && (
-                  <div className="absolute top-16 left-4 z-20 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                    HLS (.m3u8)
-                  </div>
-                )}
-
-                {/* Controles */}
-                <div
-                  className={`absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-transparent to-black/40 transition-opacity duration-300 pointer-events-none ${
-                    mostrarControles ? "opacity-100" : "opacity-0"
-                  }`}
-                >
-                  {!reproduciendo && (
-                    <button
-                      onClick={togglePlay}
-                      className="absolute inset-0 m-auto w-16 h-16 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center transition-colors pointer-events-auto"
-                      aria-label="Reproducir"
-                    >
-                      <PlayIcon />
-                    </button>
-                  )}
-
-                  <div className="px-4 md:px-8 pb-6 space-y-2 pointer-events-auto">
-                    <p className="text-sm md:text-base font-semibold mb-1">{pelicula.titulo}</p>
-                    <input
-                      type="range"
-                      min={0}
-                      max={duracion || 0}
-                      value={progreso}
-                      onChange={(e) => {
-                        const t = Number(e.target.value);
-                        if (videoRef.current) videoRef.current.currentTime = t;
-                        setProgreso(t);
-                      }}
-                      className="w-full accent-nf-red cursor-pointer"
-                    />
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <button onClick={togglePlay} aria-label={reproduciendo ? "Pausar" : "Reproducir"}>
-                          {reproduciendo ? <PauseIcon /> : <PlayIcon small />}
-                        </button>
-                        <span className="text-sm text-gray-300">
-                          {formatTiempo(progreso)} / {formatTiempo(duracion)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <VolumeIcon />
-                        <input
-                          type="range"
-                          min={0}
-                          max={1}
-                          step={0.05}
-                          value={volumen}
-                          onChange={(e) => {
-                            const v = Number(e.target.value);
-                            if (videoRef.current) videoRef.current.volume = v;
-                            setVolumen(v);
-                          }}
-                          className="w-20 accent-nf-red cursor-pointer"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
-          </>
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-center px-4">
-            <img
-              src={pelicula.caratula || CARATULA_FALLBACK}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover opacity-30"
-            />
-            <p className="relative text-lg font-semibold">
-              Esta película todavía no tiene un enlace de reproducción
-            </p>
-            <p className="relative text-nf-gray-light text-sm">
-              Añádelo desde el panel de administrador.
-            </p>
-          </div>
-        )}
+      {/* Botón para cambiar de proveedor si uno falla */}
+      <div className="absolute bottom-4 right-4 z-30 flex gap-2">
+        <button
+          onClick={() => setProveedorIndex((i) => (i + 1) % PROVEEDORES.length)}
+          className="bg-black/70 hover:bg-black/90 text-white text-xs px-3 py-2 rounded-lg backdrop-blur-sm transition-colors"
+        >
+          🔄 Cambiar servidor ({proveedorIndex + 1}/{PROVEEDORES.length})
+        </button>
       </div>
     </main>
-  );
-}
-
-// ============================================
-// ICONOS
-// ============================================
-function PlayIcon({ small }: { small?: boolean }) {
-  const s = small ? 18 : 28;
-  return (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M8 5v14l11-7z" />
-    </svg>
-  );
-}
-
-function PauseIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M6 5h4v14H6zM14 5h4v14h-4z" />
-    </svg>
-  );
-}
-
-function VolumeIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M3 10v4h4l5 5V5L7 10H3z" />
-    </svg>
   );
 }

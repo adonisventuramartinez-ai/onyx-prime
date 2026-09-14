@@ -1,87 +1,75 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/db";
-import { crearClienteServidor } from "@/lib/supabase/server";
 
-export const dynamic = 'force-dynamic';
-async function esAdmin() {
-  const supabase = crearClienteServidor();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return false;
-  const admins = (process.env.ADMIN_EMAILS || "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-  return admins.includes((user.email || "").toLowerCase());
-}
+export const runtime = "nodejs";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(req.url);
-    const busqueda = searchParams.get("q");
-    const genero = searchParams.get("genero");
-    const pagina = Number(searchParams.get("pagina") || "1");
-    const porPagina = Number(searchParams.get("porPagina") || "0");
-
-    let query = supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from("peliculas")
-      .select("*", { count: "exact" })
+      .select("*")
       .order("creado_en", { ascending: false });
-
-    if (busqueda) query = query.ilike("titulo", `%${busqueda}%`);
-    if (genero) query = query.eq("genero", genero);
-
-    if (porPagina > 0) {
-      const desde = (pagina - 1) * porPagina;
-      query = query.range(desde, desde + porPagina - 1);
-    }
-
-    const { data, error, count } = await query;
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ peliculas: data || [], total: count ?? data?.length ?? 0 });
+    return NextResponse.json({ peliculas: data || [] });
   } catch (error) {
-    console.error("Error en GET /api/peliculas:", error);
     return NextResponse.json({ error: "Error al obtener películas" }, { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    if (!(await esAdmin())) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    const body = await req.json();
+    const {
+      tmdb_id,
+      titulo,
+      anio,
+      genero,
+      sinopsis,
+      caratula,
+      link_directo,
+      fuente,
+      destacada,
+    } = body;
+
+    if (!titulo) {
+      return NextResponse.json({ error: "El título es obligatorio" }, { status: 400 });
     }
 
-    const body = await req.json();
-    const { titulo, anio, genero, sinopsis, caratula, link_directo, fuente, destacada } = body;
+    const insertData: any = {
+      titulo,
+      anio: parseInt(anio) || new Date().getFullYear(),
+      genero: genero || "Desconocido",
+      sinopsis: sinopsis || "",
+      caratula: caratula || "",
+      link_directo: link_directo || "",
+      fuente: fuente || "manual",
+      destacada: destacada || false,
+      creado_en: new Date().toISOString(),
+    };
 
-    if (!titulo || !anio || !genero) {
-      return NextResponse.json({ error: "Título, año y género son obligatorios" }, { status: 400 });
+    // Agregar tmdb_id solo si existe
+    if (tmdb_id) {
+      insertData.tmdb_id = parseInt(tmdb_id);
     }
 
     const { data, error } = await supabaseAdmin
       .from("peliculas")
-      .insert([{
-        titulo,
-        anio,
-        genero,
-        sinopsis: sinopsis ?? "",
-        caratula: caratula ?? "",
-        link_directo: link_directo ?? "",
-        fuente: fuente ?? "manual",
-        destacada: destacada ?? false,
-      }])
+      .insert(insertData)
       .select()
       .single();
 
     if (error) {
+      console.error("Error al insertar:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json(data, { status: 201 });
+    return NextResponse.json(data);
   } catch (error) {
-    return NextResponse.json({ error: "Cuerpo de la petición inválido" }, { status: 400 });
+    console.error("Error:", error);
+    return NextResponse.json({ error: "Error al guardar" }, { status: 500 });
   }
 }

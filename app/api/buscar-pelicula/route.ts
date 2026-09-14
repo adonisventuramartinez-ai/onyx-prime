@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { buscarPeliculaCompleta } from "@/lib/scraper";
 import { supabaseAdmin } from "@/lib/db";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+
+const TMDB_API_KEY = process.env.TMDB_API_KEY || "67fff863bf6ae181cd30a3519662ea70";
 
 export async function GET(req: NextRequest) {
   const nombre = req.nextUrl.searchParams.get("nombre");
@@ -13,11 +13,35 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const pelicula = await buscarPeliculaCompleta(nombre);
+    // Buscar en TMDB
+    const res = await fetch(
+      `https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(nombre)}&language=es-ES`
+    );
 
-    if (!pelicula) {
+    if (!res.ok) {
+      return NextResponse.json({ error: "Error en TMDB" }, { status: 500 });
+    }
+
+    const data = await res.json();
+
+    if (!data.results || data.results.length === 0) {
       return NextResponse.json({ error: "No se encontró la película" }, { status: 404 });
     }
+
+    const movie = data.results[0];
+
+    const pelicula = {
+      tmdb_id: movie.id,
+      titulo: movie.title,
+      anio: movie.release_date ? movie.release_date.split("-")[0] : "2024",
+      genero: "Desconocido",
+      sinopsis: movie.overview || "Sin sinopsis disponible",
+      caratula: movie.poster_path
+        ? `https://image.tmdb.org/t/p/original${movie.poster_path}`
+        : "",
+      link_directo: "",
+      fuente: "auto",
+    };
 
     return NextResponse.json({ pelicula });
   } catch (error) {
@@ -35,22 +59,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Nombre requerido" }, { status: 400 });
     }
 
-    const pelicula = await buscarPeliculaCompleta(nombre);
+    const res = await fetch(
+      `https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(nombre)}&language=es-ES`
+    );
 
-    if (!pelicula) {
+    if (!res.ok) {
+      return NextResponse.json({ error: "Error en TMDB" }, { status: 500 });
+    }
+
+    const data = await res.json();
+
+    if (!data.results || data.results.length === 0) {
       return NextResponse.json({ error: "No se encontró la película" }, { status: 404 });
     }
 
-    // Guardar en Supabase
-    const { data, error } = await supabaseAdmin
+    const movie = data.results[0];
+
+    const { data: insertada, error } = await supabaseAdmin
       .from("peliculas")
       .insert({
-        titulo: pelicula.titulo,
-        anio: parseInt(pelicula.anio) || 2024,
-        genero: pelicula.genero,
-        sinopsis: pelicula.sinopsis,
-        caratula: pelicula.caratula,
-        link_directo: pelicula.link_directo,
+        tmdb_id: movie.id,
+        titulo: movie.title,
+        anio: parseInt(movie.release_date?.split("-")[0] || "2024"),
+        genero: "Desconocido",
+        sinopsis: movie.overview || "Sin sinopsis disponible",
+        caratula: movie.poster_path
+          ? `https://image.tmdb.org/t/p/original${movie.poster_path}`
+          : "",
+        link_directo: "",
         fuente: "auto",
         creado_en: new Date().toISOString(),
       })
@@ -61,7 +97,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ pelicula: data });
+    return NextResponse.json({ pelicula: insertada });
   } catch (error) {
     console.error("Error:", error);
     return NextResponse.json({ error: "Error al guardar" }, { status: 500 });

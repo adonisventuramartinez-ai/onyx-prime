@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { CARATULA_FALLBACK } from "@/lib/db";
-import type { Pelicula } from "@/lib/db";
 
 const GENEROS = [
   "Acción", "Comedia", "Drama", "Terror", "Ciencia ficción",
@@ -10,6 +9,7 @@ const GENEROS = [
 ];
 
 export type DatosPelicula = {
+  tmdb_id?: number | null;
   titulo: string;
   anio: number;
   genero: string;
@@ -24,11 +24,12 @@ export default function PeliculaForm({
   onGuardar,
   textoBoton = "Guardar película",
 }: {
-  inicial?: Partial<Pelicula>;
+  inicial?: Partial<DatosPelicula>;
   onGuardar: (datos: DatosPelicula) => Promise<void>;
   textoBoton?: string;
 }) {
   const [form, setForm] = useState<DatosPelicula>({
+    tmdb_id: inicial?.tmdb_id ?? null,
     titulo: inicial?.titulo ?? "",
     anio: inicial?.anio ?? new Date().getFullYear(),
     genero: inicial?.genero ?? GENEROS[0],
@@ -65,6 +66,27 @@ export default function PeliculaForm({
   return (
     <div className="grid md:grid-cols-[1fr,220px] gap-8">
       <form onSubmit={submit} className="space-y-5">
+        <Campo label="ID de TMDB (obligatorio para reproducir)">
+          <input
+            type="number"
+            value={form.tmdb_id ?? ""}
+            onChange={(e) => actualizar("tmdb_id", e.target.value ? Number(e.target.value) : null)}
+            className="input"
+            placeholder="Ej: 27205 (Inception)"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Búscalo en{" "}
+            <a
+              href="https://www.themoviedb.org/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#E50914] hover:underline"
+            >
+              themoviedb.org
+            </a>
+          </p>
+        </Campo>
+
         <Campo label="Título *">
           <input
             value={form.titulo}
@@ -114,7 +136,7 @@ export default function PeliculaForm({
           />
         </Campo>
 
-        <Campo label="Link directo de reproducción (MP4, M3U8...)">
+        <Campo label="Link directo (opcional, si usas otro reproductor)">
           <input
             value={form.link_directo}
             onChange={(e) => actualizar("link_directo", e.target.value)}
@@ -123,30 +145,30 @@ export default function PeliculaForm({
           />
         </Campo>
 
-        <label className="flex items-center gap-2 text-sm text-nf-gray-light">
+        <label className="flex items-center gap-2 text-sm text-gray-400">
           <input
             type="checkbox"
             checked={form.destacada}
             onChange={(e) => actualizar("destacada", e.target.checked)}
-            className="accent-nf-red"
+            className="accent-[#E50914]"
           />
-          Mostrar como destacada en el hero de la página principal
+          Mostrar como destacada en el hero
         </label>
 
-        {error && <p className="text-nf-garnet-hover text-sm">{error}</p>}
+        {error && <p className="text-[#E50914] text-sm">{error}</p>}
 
         <button
           type="submit"
           disabled={guardando}
-          className="w-full md:w-auto bg-nf-red hover:bg-nf-red-hover text-white transition-colors px-8 py-3 rounded-sm font-semibold disabled:opacity-50"
+          className="w-full md:w-auto bg-[#E50914] hover:bg-[#b20710] transition-colors px-8 py-3 rounded font-semibold disabled:opacity-50 text-white"
         >
           {guardando ? "Guardando..." : textoBoton}
         </button>
       </form>
 
       <div>
-        <p className="text-xs text-nf-gray-light mb-2 uppercase tracking-wide">Vista previa</p>
-        <div className="aspect-[2/3] rounded-sm overflow-hidden bg-nf-surface border border-white/10">
+        <p className="text-xs text-gray-400 mb-2 uppercase tracking-wide">Vista previa</p>
+        <div className="aspect-[2/3] rounded overflow-hidden bg-neutral-800 border border-white/10">
           <img
             src={form.caratula || CARATULA_FALLBACK}
             onError={(e) => {
@@ -163,14 +185,14 @@ export default function PeliculaForm({
           width: 100%;
           background: rgba(255, 255, 255, 0.05);
           border: 1px solid rgba(255, 255, 255, 0.15);
-          border-radius: 2px;
+          border-radius: 6px;
           padding: 10px 14px;
-          color: #f5f5f5;
+          color: white;
           outline: none;
           transition: border-color 0.2s;
         }
         .input:focus {
-          border-color: #e11d2e;
+          border-color: white;
         }
       `}</style>
     </div>
@@ -180,7 +202,7 @@ export default function PeliculaForm({
 function Campo({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block space-y-1.5">
-      <span className="text-sm text-nf-gray-light">{label}</span>
+      <span className="text-sm text-gray-400">{label}</span>
       {children}
     </label>
   );

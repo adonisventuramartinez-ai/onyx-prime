@@ -8,6 +8,7 @@ import Link from "next/link";
 import { ArrowLeft, Search, Sparkles, Loader2, ExternalLink, CheckCircle, AlertCircle } from "lucide-react";
 
 interface PeliculaEncontrada {
+  tmdb_id: number; // 👈 Agregado
   titulo: string;
   anio: string;
   genero: string;
@@ -63,7 +64,13 @@ export default function AgregarAutoPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...resultado,
+          tmdb_id: resultado.tmdb_id, // 👈 Se envía el tmdb_id
+          titulo: resultado.titulo,
+          anio: resultado.anio,
+          genero: resultado.genero,
+          sinopsis: resultado.sinopsis,
+          caratula: resultado.caratula,
+          link_directo: resultado.link_directo || "",
           fuente: "auto",
         }),
       });
@@ -96,13 +103,13 @@ export default function AgregarAutoPage() {
           Buscar <span className="text-purple-400">Automático</span>
         </h1>
         <p className="text-gray-400 text-sm mb-6">
-          Escribe el nombre de la película. El sistema buscará en TMDB + Cinecalidad + CineHDPlus y extraerá el link de DoodStream.
+          Escribe el nombre de la película. El sistema buscará en TMDB y guardará el ID automáticamente.
         </p>
 
         <div className="flex gap-3 mb-6">
           <input
             type="text"
-            placeholder="Ej: Toy Story 5, Oppenheimer, Barbie..."
+            placeholder="Ej: Inception, El Padrino, La Odisea..."
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && buscarPelicula()}
@@ -128,7 +135,7 @@ export default function AgregarAutoPage() {
         {cargando && (
           <div className="text-center py-12">
             <Loader2 className="w-12 h-12 animate-spin text-purple-400 mx-auto mb-4" />
-            <p className="text-gray-400">Buscando y extrayendo link...</p>
+            <p className="text-gray-400">Buscando en TMDB...</p>
           </div>
         )}
 
@@ -160,7 +167,7 @@ export default function AgregarAutoPage() {
                       <span className="text-sm text-gray-400">{resultado.anio}</span>
                       <span className="text-sm text-gray-400">{resultado.genero}</span>
                       <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full">
-                        🤖 Automático
+                        🎬 TMDB ID: {resultado.tmdb_id}
                       </span>
                     </div>
                   </div>
@@ -173,23 +180,6 @@ export default function AgregarAutoPage() {
 
                 <p className="text-gray-300 text-sm mt-3 line-clamp-3">{resultado.sinopsis}</p>
 
-                <div className="mt-4 p-3 bg-black/30 rounded-lg border border-white/10">
-                  <p className="text-xs text-gray-500 mb-1">🎬 Link directo:</p>
-                  {resultado.link_directo ? (
-                    <a
-                      href={resultado.link_directo}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-purple-400 text-sm hover:underline flex items-center gap-1 truncate"
-                    >
-                      {resultado.link_directo}
-                      <ExternalLink className="w-3 h-3 flex-shrink-0" />
-                    </a>
-                  ) : (
-                    <p className="text-yellow-400 text-sm">⚠️ No se encontró link de video</p>
-                  )}
-                </div>
-
                 {!guardado && (
                   <button
                     onClick={guardarPelicula}
@@ -200,6 +190,10 @@ export default function AgregarAutoPage() {
                     {guardando ? "Guardando..." : "Guardar en catálogo"}
                   </button>
                 )}
+
+                <p className="text-xs text-gray-500 mt-3">
+                  ✅ El ID de TMDB ({resultado.tmdb_id}) se guardará automáticamente para poder reproducir la película.
+                </p>
               </div>
             </div>
           </div>

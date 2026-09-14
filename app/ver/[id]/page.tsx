@@ -17,12 +17,33 @@ interface Pelicula {
   link_directo: string;
 }
 
-// Lista de proveedores de embeds (si uno falla, prueba con otro)
+// Proveedores ordenados por prioridad (el primero es el que funciona)
 const PROVEEDORES = [
-  (id: number) => `https://vidsrc.xyz/embed/movie/${id}`,
-  (id: number) => `https://vidlink.pro/movie/${id}`,
-  (id: number) => `https://www.2embed.ru/embed/tmdb/movie?id=${id}`,
-  (id: number) => `https://multiembed.mov/?video_id=${id}`,
+  {
+    nombre: "VidLink",
+    url: (id: number) => `https://vidlink.pro/movie/${id}?primaryColor=E50914&autoplay=true&title=true`,
+    idioma: "es",
+  },
+  {
+    nombre: "VidSrc XYZ",
+    url: (id: number) => `https://vidsrc.xyz/embed/movie/${id}?ds_lang=es`,
+    idioma: "es",
+  },
+  {
+    nombre: "VidSrc.to",
+    url: (id: number) => `https://vidsrc.to/embed/movie/${id}`,
+    idioma: "es",
+  },
+  {
+    nombre: "2Embed",
+    url: (id: number) => `https://www.2embed.cc/embed/${id}`,
+    idioma: "es",
+  },
+  {
+    nombre: "SuperEmbed",
+    url: (id: number) => `https://multiembed.mov/directstream.php?video_id=${id}&tmdb=1`,
+    idioma: "es",
+  },
 ];
 
 export default function VerPeliculaPage() {
@@ -95,7 +116,7 @@ export default function VerPeliculaPage() {
               Esta película no tiene un ID de TMDB asignado
             </p>
             <p className="text-gray-400 text-sm mt-2">
-              Edítala en el panel de admin para agregarlo y poder reproducirla.
+              Edítala en el panel de admin para agregarlo.
             </p>
           </div>
         </div>
@@ -103,7 +124,8 @@ export default function VerPeliculaPage() {
     );
   }
 
-  const embedUrl = PROVEEDORES[proveedorIndex](tmdbId);
+  const proveedorActual = PROVEEDORES[proveedorIndex];
+  const embedUrl = proveedorActual.url(tmdbId);
 
   return (
     <main className="min-h-screen bg-black flex flex-col">
@@ -117,22 +139,27 @@ export default function VerPeliculaPage() {
 
       <div className="relative w-full flex-1 bg-black flex items-center justify-center">
         <iframe
+          key={embedUrl}
           src={embedUrl}
           className="w-full h-full max-h-screen border-0"
           allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
           allowFullScreen
           loading="lazy"
           title={pelicula.titulo}
+          referrerPolicy="no-referrer"
         />
       </div>
 
-      {/* Botón para cambiar de proveedor si uno falla */}
+      {/* Info + Botón de cambiar servidor */}
       <div className="absolute bottom-4 right-4 z-30 flex gap-2">
+        <span className="bg-black/70 text-white text-xs px-3 py-2 rounded-lg backdrop-blur-sm">
+          📺 {proveedorActual.nombre}
+        </span>
         <button
           onClick={() => setProveedorIndex((i) => (i + 1) % PROVEEDORES.length)}
-          className="bg-black/70 hover:bg-black/90 text-white text-xs px-3 py-2 rounded-lg backdrop-blur-sm transition-colors"
+          className="bg-[#E50914]/80 hover:bg-[#E50914] text-white text-xs px-3 py-2 rounded-lg backdrop-blur-sm transition-colors font-semibold"
         >
-          🔄 Cambiar servidor ({proveedorIndex + 1}/{PROVEEDORES.length})
+          🔄 Cambiar servidor
         </button>
       </div>
     </main>

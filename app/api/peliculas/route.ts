@@ -51,7 +51,6 @@ export async function POST(req: NextRequest) {
       creado_en: new Date().toISOString(),
     };
 
-    // Agregar tmdb_id solo si existe
     if (tmdb_id) {
       insertData.tmdb_id = parseInt(tmdb_id);
     }
@@ -63,13 +62,11 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) {
-      console.error("Error al insertar:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error("Error:", error);
     return NextResponse.json({ error: "Error al guardar" }, { status: 500 });
   }
 }

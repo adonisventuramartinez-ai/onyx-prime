@@ -45,7 +45,6 @@ export async function PATCH(
     const actualizacion: any = {};
     for (const campo of camposPermitidos) {
       if (campo in body) {
-        // Convertir tmdb_id y anio a número
         if ((campo === "tmdb_id" || campo === "anio") && body[campo]) {
           actualizacion[campo] = parseInt(body[campo]);
         } else {
@@ -62,13 +61,11 @@ export async function PATCH(
       .single();
 
     if (error) {
-      console.error("Error al actualizar:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error("Error:", error);
     return NextResponse.json({ error: "Error al actualizar" }, { status: 500 });
   }
 }

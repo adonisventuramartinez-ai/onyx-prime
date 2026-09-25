@@ -68,13 +68,13 @@ function LoginForm() {
       </div>
 
       <div className="absolute top-6 left-6 md:left-12">
-        <span className="font-display italic text-2xl md:text-3xl tracking-tight text-nf-cream select-none">
+        <span className="font-display text-2xl md:text-3xl tracking-tight text-nf-cream select-none">
           Onyx<span className="text-nf-red not-italic">.</span>
         </span>
       </div>
 
-      <div className="relative z-10 w-full max-w-md bg-nf-surface/90 border border-white/10 rounded-sm p-8 md:p-12 space-y-6">
-        <h1 className="font-display italic text-2xl md:text-3xl text-nf-cream">
+      <div className="relative z-10 w-full max-w-md bg-nf-surface/90 border border-white/10 rounded p-8 md:p-12 space-y-6">
+        <h1 className="font-display text-2xl md:text-3xl text-nf-cream">
           {modo === "login" ? "Iniciar sesión" : "Crear cuenta"}
         </h1>
 
@@ -112,7 +112,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={cargando}
-            className="w-full bg-nf-red hover:bg-nf-red-hover text-white transition-colors py-3 rounded-sm font-semibold disabled:opacity-50"
+            className="w-full bg-nf-red hover:bg-nf-red-hover text-white transition-colors py-3 rounded font-semibold disabled:opacity-50"
           >
             {cargando ? "Un momento..." : modo === "login" ? "Iniciar sesión" : "Registrarme"}
           </button>

@@ -241,7 +241,7 @@ export default function HomePage() {
           <p className="text-nf-gray-light mb-6">{errorCarga}</p>
           <button
             onClick={reiniciarCarga}
-            className="bg-nf-red hover:bg-nf-red-hover text-white font-semibold px-6 py-2 rounded-sm transition-colors"
+            className="bg-nf-red hover:bg-nf-red-hover text-white font-semibold px-6 py-2 rounded transition-colors"
           >
             Reintentar
           </button>
@@ -262,7 +262,7 @@ export default function HomePage() {
       >
         <div className="flex items-center justify-between px-4 md:px-10 py-4 gap-4">
           <div className="flex items-center gap-8">
-            <span className="font-display italic text-2xl md:text-[28px] tracking-tight text-nf-cream select-none">
+            <span className="font-display text-2xl md:text-[28px] tracking-tight text-nf-cream select-none">
               Onyx<span className="text-nf-red not-italic">.</span>
             </span>
             <nav className="hidden md:flex gap-6 text-sm">
@@ -270,8 +270,8 @@ export default function HomePage() {
                 <button
                   key={cat}
                   onClick={() => { setCategoriaActiva(cat); setPagina(1); }}
-                  className={`transition-colors hover:text-nf-cream ${
-                    categoriaActiva === cat ? "text-nf-cream font-semibold" : "text-nf-gray"
+                  className={`transition-colors hover:text-nf-cream uppercase text-[13px] tracking-wide font-extrabold ${
+                    categoriaActiva === cat ? "text-white" : "text-nf-gray"
                   }`}
                 >
                   {cat}
@@ -287,7 +287,7 @@ export default function HomePage() {
                 value={busqueda}
                 onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
                 placeholder="Buscar en tu catálogo..."
-                className="bg-black/40 border border-white/15 rounded-sm px-4 py-2 pl-9 text-sm w-40 md:w-64 focus:outline-none focus:border-nf-red transition-colors placeholder:text-nf-gray text-nf-cream"
+                className="bg-black/40 border border-white/15 rounded px-4 py-2 pl-9 text-sm w-40 md:w-64 focus:outline-none focus:border-nf-red transition-colors placeholder:text-nf-gray text-nf-cream"
                 aria-label="Buscar películas"
               />
               <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-nf-gray" />
@@ -305,7 +305,7 @@ export default function HomePage() {
             {esAdmin && (
               <Link
                 href="/admin"
-                className="hidden md:flex items-center gap-1.5 border border-nf-red/50 text-nf-red hover:bg-nf-red hover:text-white px-3 py-2 rounded-sm text-xs font-semibold transition-colors"
+                className="hidden md:flex items-center gap-1.5 border border-nf-red/50 text-nf-red hover:bg-nf-red hover:text-white px-3 py-2 rounded text-xs font-extrabold uppercase tracking-wide text-[13px] transition-colors"
               >
                 <Settings className="w-3.5 h-3.5" /> Panel
               </Link>
@@ -320,7 +320,7 @@ export default function HomePage() {
                 {emailUsuario ? emailUsuario[0].toUpperCase() : "U"}
               </button>
               {menuAbierto && (
-                <div className="absolute right-0 mt-2 w-56 bg-nf-surface border border-white/10 rounded-sm shadow-2xl py-2 text-sm z-50">
+                <div className="absolute right-0 mt-2 w-56 bg-nf-surface border border-white/10 rounded shadow-2xl py-2 text-sm z-50">
                   <div className="px-4 py-2 border-b border-white/10">
                     <p className="font-semibold text-nf-cream truncate">{emailUsuario || "Usuario"}</p>
                     <p className="text-xs text-nf-gray">Sala privada</p>
@@ -369,8 +369,8 @@ export default function HomePage() {
 
           <div className="max-w-6xl mx-auto grid md:grid-cols-[1fr,260px] gap-8 md:gap-14 items-end">
             <div className="fade-in order-2 md:order-1">
-              <p className="text-nf-red text-xs font-semibold tracking-wide mb-3">En cartelera</p>
-              <h1 className="font-display italic text-4xl sm:text-5xl md:text-6xl leading-[1.05] mb-4 text-nf-cream max-w-xl">
+              <p className="text-nf-red text-xs font-extrabold uppercase tracking-[0.2em] mb-3">● En cartelera</p>
+              <h1 className="font-display text-5xl sm:text-6xl md:text-7xl mb-4 text-white max-w-xl drop-shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
                 {destacada.titulo}
               </h1>
               <div className="flex items-center gap-3 text-sm text-nf-gray-light mb-5">
@@ -384,19 +384,19 @@ export default function HomePage() {
               <div className="flex flex-wrap gap-3">
                 <Link
                   href={`/ver/${destacada.id}`}
-                  className="flex items-center gap-2 bg-nf-red hover:bg-nf-red-hover text-white px-7 py-3 rounded-sm font-semibold transition-colors"
+                  className="flex items-center gap-2 bg-nf-red hover:bg-nf-red-hover text-white px-7 py-3 rounded font-extrabold uppercase tracking-wide text-[13px] transition-colors"
                 >
                   <Play className="w-4 h-4 fill-white" /> Reproducir
                 </Link>
                 <Link
                   href={`/pelicula/${destacada.id}`}
-                  className="flex items-center gap-2 border border-white/20 hover:border-white/40 px-6 py-3 rounded-sm font-semibold transition-colors text-nf-cream"
+                  className="flex items-center gap-2 border border-white/20 hover:border-white/40 px-6 py-3 rounded font-extrabold uppercase tracking-wide text-[13px] transition-colors text-nf-cream"
                 >
                   Ficha
                 </Link>
                 <button
                   onClick={() => toggleFavorito(destacada.id)}
-                  className="flex items-center gap-2 border border-white/20 hover:border-white/40 px-6 py-3 rounded-sm font-semibold transition-colors text-nf-cream"
+                  className="flex items-center gap-2 border border-white/20 hover:border-white/40 px-6 py-3 rounded font-extrabold uppercase tracking-wide text-[13px] transition-colors text-nf-cream"
                 >
                   {favoritoIds.has(destacada.id) ? (
                     <><Check className="w-4 h-4" /> En tu lista</>
@@ -409,7 +409,7 @@ export default function HomePage() {
 
             <Link
               href={`/pelicula/${destacada.id}`}
-              className="order-1 md:order-2 group relative aspect-[2/3] w-40 sm:w-56 md:w-full mx-auto md:mx-0 rounded-sm overflow-hidden border border-white/10 shadow-2xl"
+              className="order-1 md:order-2 group relative aspect-[2/3] w-40 sm:w-56 md:w-full mx-auto md:mx-0 rounded overflow-hidden border border-white/10 shadow-2xl"
               style={{ boxShadow: "0 20px 60px -20px rgba(225,29,46,0.3)" }}
             >
               <img
@@ -430,7 +430,7 @@ export default function HomePage() {
       {/* ======================================== */}
       <section className="max-w-6xl mx-auto px-4 md:px-10 pb-12">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <h2 className="font-display italic text-xl md:text-2xl text-nf-cream">
+          <h2 className="font-display text-xl md:text-2xl text-nf-cream">
             {busqueda ? `Resultados para "${busqueda}"` : "Catálogo"}
             <span className="text-sm text-nf-gray ml-2 font-sans not-italic">
               ({filtradas.length})
@@ -440,18 +440,18 @@ export default function HomePage() {
           <div className="relative">
             <button
               onClick={() => setFiltrosAbiertos((v) => !v)}
-              className="flex items-center gap-2 border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-sm text-sm text-nf-gray-light transition-colors"
+              className="flex items-center gap-2 border border-white/15 hover:border-white/30 px-3 py-1.5 rounded text-sm text-nf-gray-light transition-colors"
             >
               <SlidersHorizontal className="w-3.5 h-3.5" /> Filtros
             </button>
             {filtrosAbiertos && (
-              <div className="absolute right-0 mt-2 w-64 bg-nf-surface border border-white/10 rounded-sm shadow-2xl p-4 z-40 space-y-4">
+              <div className="absolute right-0 mt-2 w-64 bg-nf-surface border border-white/10 rounded shadow-2xl p-4 z-40 space-y-4">
                 <div>
                   <p className="text-xs text-nf-gray mb-1.5">Género</p>
                   <select
                     value={filtroGenero}
                     onChange={(e) => { setFiltroGenero(e.target.value); setPagina(1); }}
-                    className="w-full bg-black/40 border border-white/15 rounded-sm px-3 py-1.5 text-sm text-nf-cream focus:outline-none focus:border-nf-red"
+                    className="w-full bg-black/40 border border-white/15 rounded px-3 py-1.5 text-sm text-nf-cream focus:outline-none focus:border-nf-red"
                   >
                     <option value="todos">Todos</option>
                     {GENEROS_POPULARES.map((g) => <option key={g} value={g}>{g}</option>)}
@@ -465,7 +465,7 @@ export default function HomePage() {
                   <select
                     value={ordenarPor}
                     onChange={(e) => { setOrdenarPor(e.target.value as OrdenPor); setPagina(1); }}
-                    className="w-full bg-black/40 border border-white/15 rounded-sm px-3 py-1.5 text-sm text-nf-cream focus:outline-none focus:border-nf-red"
+                    className="w-full bg-black/40 border border-white/15 rounded px-3 py-1.5 text-sm text-nf-cream focus:outline-none focus:border-nf-red"
                   >
                     <option value="reciente">Más reciente</option>
                     <option value="titulo">Título (A-Z)</option>
@@ -477,13 +477,13 @@ export default function HomePage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => setVistaGrid("grid")}
-                      className={`flex-1 text-sm py-1.5 rounded-sm transition-colors ${vistaGrid === "grid" ? "bg-nf-red text-white font-semibold" : "bg-black/40 text-nf-gray-light"}`}
+                      className={`flex-1 text-sm py-1.5 rounded transition-colors ${vistaGrid === "grid" ? "bg-nf-red text-white font-semibold" : "bg-black/40 text-nf-gray-light"}`}
                     >
                       Cuadrícula
                     </button>
                     <button
                       onClick={() => setVistaGrid("lista")}
-                      className={`flex-1 text-sm py-1.5 rounded-sm transition-colors ${vistaGrid === "lista" ? "bg-nf-red text-white font-semibold" : "bg-black/40 text-nf-gray-light"}`}
+                      className={`flex-1 text-sm py-1.5 rounded transition-colors ${vistaGrid === "lista" ? "bg-nf-red text-white font-semibold" : "bg-black/40 text-nf-gray-light"}`}
                     >
                       Lista
                     </button>
@@ -513,7 +513,7 @@ export default function HomePage() {
         ) : (
           <>
             {errorFavoritos && (
-              <div className="bg-nf-garnet/15 border border-nf-garnet/40 rounded-sm p-3 mb-4 text-nf-garnet-hover text-sm flex items-center justify-between">
+              <div className="bg-nf-garnet/15 border border-nf-garnet/40 rounded p-3 mb-4 text-nf-garnet-hover text-sm flex items-center justify-between">
                 <span>{errorFavoritos}</span>
                 <button onClick={() => setErrorFavoritos(null)} className="hover:text-nf-cream">
                   <X className="w-4 h-4" />
@@ -540,7 +540,7 @@ export default function HomePage() {
                 <button
                   onClick={() => setPagina((p) => Math.max(1, p - 1))}
                   disabled={pagina === 1}
-                  className="px-4 py-2 border border-white/15 hover:border-white/30 rounded-sm disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-sm"
+                  className="px-4 py-2 border border-white/15 hover:border-white/30 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-sm"
                 >
                   Anterior
                 </button>
@@ -550,7 +550,7 @@ export default function HomePage() {
                 <button
                   onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
                   disabled={pagina === totalPaginas}
-                  className="px-4 py-2 border border-white/15 hover:border-white/30 rounded-sm disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-sm"
+                  className="px-4 py-2 border border-white/15 hover:border-white/30 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-sm"
                 >
                   Siguiente
                 </button>
@@ -588,9 +588,9 @@ function TarjetaPelicula({
   const esNueva = new Date(pelicula.creado_en).getTime() > Date.now() - 1000 * 60 * 60 * 24 * 7;
 
   return (
-    <div className="group relative">
+    <div className="group relative card-brutal">
       <Link href={`/ver/${pelicula.id}`}>
-        <div className="relative aspect-[2/3] rounded-sm overflow-hidden bg-nf-surface border border-white/5 transition-all duration-300 group-hover:border-nf-red/60">
+        <div className="relative aspect-[2/3] rounded overflow-hidden bg-nf-surface border border-white/5 transition-all duration-300 group-hover:border-nf-red">
           {cargandoImg && <div className="absolute inset-0 bg-nf-surface animate-pulse" />}
           <img
             src={pelicula.caratula || CARATULA_FALLBACK}
@@ -600,18 +600,18 @@ function TarjetaPelicula({
             onError={(e) => { (e.target as HTMLImageElement).src = CARATULA_FALLBACK; setCargandoImg(false); }}
           />
           {esNueva && (
-            <span className="absolute top-2 left-2 bg-nf-red text-white text-[9px] font-bold px-2 py-0.5 rounded-sm z-10">
-              NUEVO
+            <span className="absolute top-2 left-2 bg-nf-red text-white chip-brutal px-2 py-0.5 rounded z-10">
+              Nuevo
             </span>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
-            <span className="text-nf-cream text-xs font-medium flex items-center gap-1.5">
-              <Play className="w-3 h-3 fill-nf-cream" /> Reproducir
+          <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
+            <span className="text-white text-xs font-extrabold uppercase tracking-wide flex items-center gap-1.5">
+              <Play className="w-3 h-3 fill-white" /> Reproducir
             </span>
           </div>
         </div>
-        <h4 className="mt-2 text-sm font-medium truncate text-nf-cream">{pelicula.titulo}</h4>
-        <p className="text-xs text-nf-gray truncate">{pelicula.genero}</p>
+        <h4 className="mt-2 text-sm font-bold truncate text-white">{pelicula.titulo}</h4>
+        <p className="text-xs text-nf-gray chip-brutal truncate">{pelicula.genero}</p>
       </Link>
       <button
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle(pelicula.id); }}
@@ -629,8 +629,8 @@ function TarjetaPeliculaLista({
 }: { pelicula: Pelicula; enLista: boolean; onToggle: (id: string) => void }) {
   return (
     <Link href={`/ver/${pelicula.id}`}>
-      <div className="flex gap-4 bg-nf-surface/60 hover:bg-nf-surface rounded-sm p-3 transition-colors border border-white/5">
-        <div className="w-16 h-24 flex-shrink-0 rounded-sm overflow-hidden bg-nf-surface">
+      <div className="flex gap-4 bg-nf-surface/60 hover:bg-nf-surface rounded p-3 transition-colors border border-white/5">
+        <div className="w-16 h-24 flex-shrink-0 rounded overflow-hidden bg-nf-surface">
           <img
             src={pelicula.caratula || CARATULA_FALLBACK}
             alt={pelicula.titulo}

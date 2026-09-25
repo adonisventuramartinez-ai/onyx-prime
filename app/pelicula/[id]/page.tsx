@@ -87,7 +87,7 @@ export default function FichaPeliculaPage() {
     return (
       <div className="min-h-screen bg-nf-dark flex flex-col items-center justify-center gap-4 text-center px-4">
         <p className="text-xl font-semibold text-nf-cream">{error || "Película no disponible"}</p>
-        <Link href="/" className="bg-nf-red hover:bg-nf-red-hover text-white transition-colors px-6 py-2.5 rounded-sm font-semibold">
+        <Link href="/" className="bg-nf-red hover:bg-nf-red-hover text-white transition-colors px-6 py-2.5 rounded font-semibold">
           Volver al inicio
         </Link>
       </div>
@@ -119,7 +119,7 @@ export default function FichaPeliculaPage() {
 
           <div className="relative max-w-5xl mx-auto px-4 md:px-10 md:h-full flex flex-col md:flex-row md:items-end gap-6 md:gap-10 md:pb-10">
             <div className="w-40 sm:w-52 md:w-56 flex-shrink-0 mx-auto md:mx-0 -mt-2 md:mt-0">
-              <div className="aspect-[2/3] rounded-sm overflow-hidden border border-white/10 shadow-2xl">
+              <div className="aspect-[2/3] rounded overflow-hidden border border-white/10 shadow-2xl">
                 <img
                   src={pelicula.caratula || CARATULA_FALLBACK}
                   alt={pelicula.titulo}
@@ -130,32 +130,32 @@ export default function FichaPeliculaPage() {
             </div>
 
             <div className="fade-in text-center md:text-left">
-              <h1 className="font-display italic text-3xl md:text-5xl leading-[1.05] mb-3 text-nf-cream">
+              <h1 className="font-display text-3xl md:text-5xl leading-[1.05] mb-3 text-nf-cream">
                 {pelicula.titulo}
               </h1>
               <div className="flex items-center justify-center md:justify-start gap-3 text-sm text-nf-gray-light mb-5">
                 <span>{pelicula.anio}</span>
                 <span className="w-1 h-1 rounded-full bg-nf-gray" />
-                <span className="border border-white/15 px-2 py-0.5 rounded-sm text-xs">
+                <span className="border border-white/15 px-2 py-0.5 rounded text-xs">
                   {pelicula.genero}
                 </span>
               </div>
               <div className="flex flex-wrap justify-center md:justify-start gap-3">
                 <Link
                   href={`/ver/${pelicula.id}`}
-                  className="flex items-center gap-2 bg-nf-red text-white px-6 py-2.5 rounded-sm font-semibold hover:bg-nf-red-hover transition-colors"
+                  className="flex items-center gap-2 bg-nf-red text-white px-6 py-2.5 rounded font-semibold hover:bg-nf-red-hover transition-colors"
                 >
                   <Play className="w-4 h-4 fill-white" /> Reproducir
                 </Link>
                 <button
                   onClick={toggleMiLista}
-                  className="flex items-center gap-2 border border-white/20 hover:border-white/40 text-nf-cream px-5 py-2.5 rounded-sm font-semibold transition-colors"
+                  className="flex items-center gap-2 border border-white/20 hover:border-white/40 text-nf-cream px-5 py-2.5 rounded font-extrabold uppercase tracking-wide text-[13px] transition-colors"
                 >
                   {enLista ? <><Check className="w-4 h-4" /> En mi lista</> : <><Plus className="w-4 h-4" /> Mi lista</>}
                 </button>
                 <button
                   onClick={compartir}
-                  className="flex items-center gap-2 border border-white/20 hover:border-white/40 text-nf-cream px-5 py-2.5 rounded-sm font-semibold transition-colors"
+                  className="flex items-center gap-2 border border-white/20 hover:border-white/40 text-nf-cream px-5 py-2.5 rounded font-extrabold uppercase tracking-wide text-[13px] transition-colors"
                 >
                   <Share2 className="w-4 h-4" /> {copiado ? "¡Copiado!" : "Compartir"}
                 </button>
@@ -168,7 +168,7 @@ export default function FichaPeliculaPage() {
       <div className="sprocket-rule text-nf-gray max-w-5xl mx-auto mt-8" />
 
       <section className="max-w-5xl mx-auto px-4 md:px-10 py-8 space-y-3">
-        <h2 className="font-display italic text-lg text-nf-cream">Sinopsis</h2>
+        <h2 className="font-display text-lg text-nf-cream">Sinopsis</h2>
         <p className="text-nf-gray-light leading-relaxed max-w-2xl">
           {pelicula.sinopsis || "Sin descripción disponible."}
         </p>
@@ -176,7 +176,7 @@ export default function FichaPeliculaPage() {
 
       {relacionadas.length > 0 && (
         <section className="max-w-5xl mx-auto px-4 md:px-10 pb-16">
-          <h2 className="font-display italic text-lg text-nf-cream mb-4">Más de {pelicula.genero}</h2>
+          <h2 className="font-display text-lg text-nf-cream mb-4">Más de {pelicula.genero}</h2>
           <div className="row-scroll flex gap-3 overflow-x-auto pb-4">
             {relacionadas.map((p) => (
               <Link
@@ -184,7 +184,7 @@ export default function FichaPeliculaPage() {
                 href={`/pelicula/${p.id}`}
                 className="group relative flex-none w-[34vw] sm:w-[20vw] md:w-[15vw] lg:w-[12vw]"
               >
-                <div className="rounded-sm overflow-hidden aspect-[2/3] bg-nf-surface border border-white/5 transition-colors duration-300 group-hover:border-nf-red/60">
+                <div className="rounded overflow-hidden aspect-[2/3] bg-nf-surface border border-white/5 transition-colors duration-300 group-hover:border-nf-red/60">
                   <img
                     src={p.caratula || CARATULA_FALLBACK}
                     alt={p.titulo}

@@ -166,7 +166,7 @@ export default function AdminPage() {
     <main className="min-h-screen bg-nf-dark px-4 md:px-10 py-8">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="font-display italic text-nf-cream text-2xl">
+          <h1 className="font-display text-nf-cream text-2xl">
             Onyx <span className="text-nf-red not-italic">- Panel</span>
           </h1>
           <p className="text-nf-gray-light text-sm">Gestiona tu catalogo</p>
@@ -195,12 +195,6 @@ export default function AdminPage() {
             className="bg-yellow-600 hover:bg-yellow-700 transition-colors px-4 py-2 rounded font-semibold text-sm"
           >
             🧹 Limpiador Dood
-          </Link>
-          <Link
-            href="/admin/scrapear-estrenos"
-            className="bg-green-600 hover:bg-green-700 transition-colors px-4 py-2 rounded font-semibold text-sm"
-          >
-            📅 Estrenos 2026
           </Link>
         </div>
       </div>
@@ -343,7 +337,7 @@ export default function AdminPage() {
         >
           <div className="bg-nf-dark border border-white/10 rounded-lg p-4 sm:p-6 md:p-8 w-full max-w-2xl max-h-[95vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <h2 className="font-display italic text-lg sm:text-xl text-nf-cream pr-2 truncate">Editar: {editando.titulo}</h2>
+              <h2 className="font-display text-lg sm:text-xl text-nf-cream pr-2 truncate">Editar: {editando.titulo}</h2>
               <button
                 onClick={() => setEditando(null)}
                 className="text-nf-gray-light hover:text-white text-2xl leading-none w-8 h-8 flex items-center justify-center shrink-0 rounded hover:bg-white/10"

@@ -26,6 +26,74 @@ body {
   scroll-behavior: smooth;
 }
 
+/* ========================================
+   SISTEMA "BRUTAL" — tipografía negra,
+   condensada y en mayúsculas para todo
+   título grande, al estilo de las
+   plataformas de streaming grandes.
+======================================== */
+.font-display {
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  line-height: 0.95;
+}
+
+h1.font-display,
+h2.font-display {
+  letter-spacing: -0.03em;
+}
+
+/* Botones "brutales": planos, sólidos, sin sutileza */
+.btn-brutal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: var(--font-ui);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  border-radius: 4px;
+  transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-brutal:active {
+  transform: scale(0.97);
+}
+.btn-brutal-primary {
+  background: var(--nf-red);
+  color: #fff;
+}
+.btn-brutal-primary:hover {
+  background: var(--nf-red-hover);
+  box-shadow: 0 0 0 3px rgba(225, 29, 46, 0.25);
+}
+.btn-brutal-ghost {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  backdrop-filter: blur(4px);
+}
+.btn-brutal-ghost:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* Tarjetas de catálogo: zoom duro + borde rojo al hover */
+.card-brutal {
+  transition: transform 0.25s cubic-bezier(.2,.8,.2,1), box-shadow 0.25s ease;
+}
+.card-brutal:hover {
+  transform: scale(1.06);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.8), 0 0 0 2px var(--nf-red);
+  z-index: 10;
+}
+
+/* Chips / badges de género, mayúsculas y peso extra */
+.chip-brutal {
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  font-size: 0.7rem;
+}
+
 .row-scroll {
   scrollbar-width: none;
   -ms-overflow-style: none;

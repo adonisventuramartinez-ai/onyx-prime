@@ -94,13 +94,13 @@ export default function PerfilPage() {
     <main className="min-h-screen bg-nf-dark px-4 py-8 md:py-12">
       <div className="max-w-2xl mx-auto space-y-10">
         <div className="flex items-center justify-between">
-          <h1 className="font-display italic text-2xl text-nf-cream">Mi perfil</h1>
+          <h1 className="font-display text-2xl text-nf-cream">Mi perfil</h1>
           <Link href="/" className="text-nf-gray-light hover:text-nf-cream text-sm">
             ← Volver al catálogo
           </Link>
         </div>
 
-        <section className="bg-nf-surface/60 border border-white/10 rounded-sm p-6 space-y-5">
+        <section className="bg-nf-surface/60 border border-white/10 rounded p-6 space-y-5">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-nf-red flex items-center justify-center text-2xl font-display font-semibold text-white overflow-hidden shrink-0">
               {avatarUrl ? (
@@ -146,15 +146,15 @@ export default function PerfilPage() {
             <button
               type="submit"
               disabled={guardandoPerfil}
-              className="bg-nf-red hover:bg-nf-red-hover text-white transition-colors px-6 py-2.5 rounded-sm font-semibold disabled:opacity-50"
+              className="bg-nf-red hover:bg-nf-red-hover text-white transition-colors px-6 py-2.5 rounded font-semibold disabled:opacity-50"
             >
               {guardandoPerfil ? "Guardando..." : "Guardar cambios"}
             </button>
           </form>
         </section>
 
-        <section className="bg-nf-surface/60 border border-white/10 rounded-sm p-6 space-y-4">
-          <h2 className="font-display italic text-lg text-nf-cream">Cambiar contraseña</h2>
+        <section className="bg-nf-surface/60 border border-white/10 rounded p-6 space-y-4">
+          <h2 className="font-display text-lg text-nf-cream">Cambiar contraseña</h2>
           <form onSubmit={cambiarPassword} className="space-y-4">
             <Campo label="Nueva contraseña">
               <input
@@ -182,7 +182,7 @@ export default function PerfilPage() {
             <button
               type="submit"
               disabled={guardandoPassword}
-              className="bg-white/10 hover:bg-white/20 text-nf-cream transition-colors px-6 py-2.5 rounded-sm font-semibold disabled:opacity-50"
+              className="bg-white/10 hover:bg-white/20 text-nf-cream transition-colors px-6 py-2.5 rounded font-semibold disabled:opacity-50"
             >
               {guardandoPassword ? "Guardando..." : "Cambiar contraseña"}
             </button>

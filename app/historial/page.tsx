@@ -39,7 +39,7 @@ export default function HistorialPage() {
     <main className="min-h-screen bg-nf-dark px-4 py-8 md:py-12">
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="font-display italic text-2xl text-nf-cream">Historial</h1>
+          <h1 className="font-display text-2xl text-nf-cream">Historial</h1>
           <Link href="/" className="text-nf-gray-light hover:text-nf-cream text-sm">
             ← Volver al catálogo
           </Link>
@@ -65,9 +65,9 @@ export default function HistorialPage() {
                 <Link
                   key={item.pelicula_id}
                   href={`/pelicula/${p.id}`}
-                  className="flex items-center gap-4 bg-nf-surface/60 hover:bg-nf-surface border border-white/5 rounded-sm p-3 transition-colors"
+                  className="flex items-center gap-4 bg-nf-surface/60 hover:bg-nf-surface border border-white/5 rounded p-3 transition-colors"
                 >
-                  <div className="w-12 h-[72px] flex-shrink-0 rounded-sm overflow-hidden bg-nf-surface">
+                  <div className="w-12 h-[72px] flex-shrink-0 rounded overflow-hidden bg-nf-surface">
                     <img
                       src={p.caratula || CARATULA_FALLBACK}
                       alt={p.titulo}

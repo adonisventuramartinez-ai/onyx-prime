@@ -20,8 +20,12 @@ module.exports = {
         "nf-cream": "#F5F5F5",
       },
       fontFamily: {
-        sans: ["var(--font-ui)", "Helvetica", "Arial", "sans-serif"],
-        display: ["var(--font-display)", "Georgia", "serif"],
+        sans: ["var(--font-ui)", "Helvetica Neue", "Helvetica", "Arial", "sans-serif"],
+        display: ["var(--font-display)", "Helvetica Neue", "Arial Black", "sans-serif"],
+      },
+      letterSpacing: {
+        tightest: "-0.04em",
+        brutal: "-0.02em",
       },
       backgroundImage: {
         "hero-gradient":

@@ -8,7 +8,7 @@ import {
   X, Heart, Clock, Settings, LogOut, SlidersHorizontal,
 } from "lucide-react";
 
-const CARATULA_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='450' viewBox='0 0 300 450'%3E%3Crect width='300' height='450' fill='%23181818'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='20' fill='%238a8a8a' text-anchor='middle' dy='.3em'%3ESin imagen%3C/text%3E%3C/svg%3E";
+const CARATULA_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='450' viewBox='0 0 300 450'%3E%3Crect width='300' height='450' fill='%23181818'/%3E%3Crect x='0' y='0' width='300' height='450' fill='none' stroke='%233a3a3a' stroke-width='2'/%3E%3Cg transform='translate(150,190)' fill='none' stroke='%23e11d2e' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='-35' y='-25' width='70' height='50' rx='4'/%3E%3Cpolygon points='12,-8 30,0 12,8' fill='%23e11d2e' stroke='none'/%3E%3C/g%3E%3Ctext x='50%25' y='265' font-family='Arial' font-size='18' font-weight='bold' letter-spacing='1' fill='%238a8a8a' text-anchor='middle'%3ESIN IMAGEN%3C/text%3E%3C/svg%3E";
 
 type Pelicula = {
   id: string;
@@ -50,6 +50,7 @@ export default function HomePage() {
   const [categoriaActiva, setCategoriaActiva] = useState("Inicio");
   const [navScrolled, setNavScrolled] = useState(false);
   const [favoritoIds, setFavoritoIds] = useState<Set<string>>(new Set());
+  const [continuarViendo, setContinuarViendo] = useState<Pelicula[]>([]);
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
   const [esAdmin, setEsAdmin] = useState(false);
@@ -120,8 +121,24 @@ export default function HomePage() {
       }
     };
 
+    const cargarHistorial = async () => {
+      try {
+        const histRes = await fetch("/api/historial");
+        if (histRes.ok) {
+          const data = await histRes.json();
+          const items: Pelicula[] = (Array.isArray(data) ? data : [])
+            .map((h: any) => (Array.isArray(h.peliculas) ? h.peliculas[0] : h.peliculas))
+            .filter(Boolean);
+          if (mounted) setContinuarViendo(items);
+        }
+      } catch (error) {
+        // Silencioso: "continuar viendo" es una mejora opcional, no crítica
+      }
+    };
+
     cargarDatos();
     cargarFavoritos();
+    cargarHistorial();
     verificarAdmin();
 
     const onScroll = () => { if (mounted) setNavScrolled(window.scrollY > 40); };
@@ -423,6 +440,21 @@ export default function HomePage() {
         </section>
       )}
 
+      {continuarViendo.length > 0 && categoriaActiva === "Inicio" && !busqueda && (
+        <section className="max-w-6xl mx-auto px-4 md:px-10 pb-4 pt-2">
+          <h2 className="font-display text-xl md:text-2xl text-nf-cream mb-4 flex items-center gap-2">
+            <Clock className="w-5 h-5 text-nf-red" /> Continuar viendo
+          </h2>
+          <div className="flex gap-4 overflow-x-auto row-scroll pb-2 -mx-1 px-1">
+            {continuarViendo.map((p) => (
+              <div key={p.id} className="flex-shrink-0 w-32 sm:w-36 md:w-40">
+                <TarjetaPelicula pelicula={p} enLista={favoritoIds.has(p.id)} onToggle={toggleFavorito} />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <div className="sprocket-rule text-nf-gray max-w-6xl mx-auto mb-8" />
 
       {/* ======================================== */}
@@ -508,7 +540,15 @@ export default function HomePage() {
           </div>
         ) : filtradas.length === 0 ? (
           <div className="text-center py-20 text-nf-gray">
-            <p className="text-lg text-nf-gray-light">No hay resultados para &quot;{busqueda}&quot;</p>
+            {categoriaActiva === "Mi lista" ? (
+              <>
+                <Heart className="w-14 h-14 mx-auto mb-4 opacity-20" />
+                <p className="text-lg text-nf-gray-light">Aún no agregaste nada a tu lista</p>
+                <p className="text-sm mt-1">Toca el + en cualquier película para guardarla aquí</p>
+              </>
+            ) : (
+              <p className="text-lg text-nf-gray-light">No hay resultados para &quot;{busqueda}&quot;</p>
+            )}
           </div>
         ) : (
           <>

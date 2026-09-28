@@ -5,6 +5,39 @@ export const runtime = "nodejs";
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY || "67fff863bf6ae181cd30a3519662ea70";
 
+// Mapa oficial de géneros de películas de TMDB (id -> nombre en español).
+// TMDB solo devuelve "genre_ids" (números) en /search/movie, no los nombres,
+// así que hay que traducirlos nosotros mismos con esta tabla fija.
+const GENEROS_TMDB: Record<number, string> = {
+  28: "Acción",
+  12: "Aventura",
+  16: "Animación",
+  35: "Comedia",
+  80: "Crimen",
+  99: "Documental",
+  18: "Drama",
+  10751: "Familia",
+  14: "Fantasía",
+  36: "Historia",
+  27: "Terror",
+  10402: "Música",
+  9648: "Misterio",
+  10749: "Romance",
+  878: "Ciencia Ficción",
+  10770: "Película de TV",
+  53: "Suspense",
+  10752: "Bélica",
+  37: "Western",
+};
+
+function obtenerGenero(genre_ids?: number[]): string {
+  if (!genre_ids || genre_ids.length === 0) return "Desconocido";
+  const nombres = genre_ids
+    .map((id) => GENEROS_TMDB[id])
+    .filter(Boolean);
+  return nombres.length > 0 ? nombres.join(", ") : "Desconocido";
+}
+
 export async function GET(req: NextRequest) {
   const nombre = req.nextUrl.searchParams.get("nombre");
 
@@ -34,7 +67,7 @@ export async function GET(req: NextRequest) {
       tmdb_id: movie.id,
       titulo: movie.title,
       anio: movie.release_date ? movie.release_date.split("-")[0] : "2024",
-      genero: "Desconocido",
+      genero: obtenerGenero(movie.genre_ids),
       sinopsis: movie.overview || "Sin sinopsis disponible",
       caratula: movie.poster_path
         ? `https://image.tmdb.org/t/p/original${movie.poster_path}`
@@ -81,7 +114,7 @@ export async function POST(req: NextRequest) {
         tmdb_id: movie.id,
         titulo: movie.title,
         anio: parseInt(movie.release_date?.split("-")[0] || "2024"),
-        genero: "Desconocido",
+        genero: obtenerGenero(movie.genre_ids),
         sinopsis: movie.overview || "Sin sinopsis disponible",
         caratula: movie.poster_path
           ? `https://image.tmdb.org/t/p/original${movie.poster_path}`

@@ -36,7 +36,7 @@ function obtenerGenero(genre_ids?: number[]): string {
 }
 
 // ========================================
-// GET — busca en TMDB + intenta extraer el link
+// GET — busca en TMDB + genera link VidLink
 // ========================================
 export async function GET(req: NextRequest) {
   const nombre = req.nextUrl.searchParams.get("nombre");
@@ -46,7 +46,6 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // 1. TMDB primero (rápido, siempre funciona)
     const res = await fetch(
       `https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(nombre)}&language=es-ES`
     );
@@ -63,21 +62,8 @@ export async function GET(req: NextRequest) {
 
     const movie = data.results[0];
 
-    // 2. Intentamos extraer el link con timeout de seguridad (15s)
-    let link_directo = "";
-    try {
-      const scrapeResult = await Promise.race([
-        buscarPeliculaCompleta(movie.title),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 15000)),
-      ]);
-
-      if (scrapeResult?.link_directo) {
-        link_directo = scrapeResult.link_directo;
-      }
-    } catch (err) {
-      console.warn("[buscar-pelicula] Extracción de link falló:", err);
-      // No rompemos la búsqueda. El usuario verá la peli igual.
-    }
+    // Link VidLink directo desde tmdb_id — siempre válido
+    const link_directo = `https://vidlink.pro/movie/${movie.id}`;
 
     const pelicula = {
       tmdb_id: movie.id,
@@ -100,7 +86,7 @@ export async function GET(req: NextRequest) {
 }
 
 // ========================================
-// POST — busca + guarda directo (fallback)
+// POST — busca + guarda directo
 // ========================================
 export async function POST(req: NextRequest) {
   try {
@@ -126,17 +112,7 @@ export async function POST(req: NextRequest) {
     }
 
     const movie = data.results[0];
-
-    let link_directo = "";
-    try {
-      const scrapeResult = await Promise.race([
-        buscarPeliculaCompleta(movie.title),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 15000)),
-      ]);
-      if (scrapeResult?.link_directo) link_directo = scrapeResult.link_directo;
-    } catch (err) {
-      console.warn("[buscar-pelicula POST] Extracción falló:", err);
-    }
+    const link_directo = `https://vidlink.pro/movie/${movie.id}`;
 
     const { data: insertada, error } = await supabaseAdmin
       .from("peliculas")

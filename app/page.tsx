@@ -23,7 +23,7 @@ type Pelicula = {
   creado_en: string;
 };
 
-const CATEGORIAS = ["Inicio", "Series", "Telenovela", "Mi lista"];
+const CATEGORIAS = ["Inicio", "Películas", "Series", "Mi lista"];
 const GENEROS_POPULARES = ["Acción", "Comedia", "Drama", "Terror", "Ciencia Ficción", "Romance", "Animación"];
 const POR_PAGINA = 20;
 
@@ -223,8 +223,8 @@ export default function HomePage() {
 
     if (categoriaActiva === "Mi lista") {
       lista = lista.filter((p) => favoritoIds.has(p.id));
-    } else if (categoriaActiva === "Series" || categoriaActiva === "Telenovela") {
-      lista = lista.filter((p) => p.genero?.toLowerCase().includes(categoriaActiva.toLowerCase()));
+    } else if (categoriaActiva === "Series") {
+      lista = lista.filter((p) => p.genero?.toLowerCase().includes("serie"));
     }
 
     if (filtroGenero !== "todos") {
@@ -610,8 +610,8 @@ export default function HomePage() {
             }`}
           >
             {item === "Inicio" && <Film className="w-5 h-5" />}
+            {item === "Películas" && <Film className="w-5 h-5" />}
             {item === "Series" && <Film className="w-5 h-5" />}
-            {item === "Telenovela" && <Film className="w-5 h-5" />}
             {item === "Mi lista" && <Heart className="w-5 h-5" />}
             <span>{item}</span>
           </button>

@@ -1,12 +1,9 @@
 // ========================================
-// LIB/SCRAPER.TS - SCRAPER COMPLETO
+// LIB/SCRAPER.TS - SCRAPER SIMPLE Y ESTABLE
+// Fuente: VidLink (acepta tmdb_id directo, no bloquea Vercel)
 // ========================================
 
-import * as cheerio from "cheerio";
-
 const TMDB_API_KEY = process.env.TMDB_API_KEY || "67fff863bf6ae181cd30a3519662ea70";
-const CINECALIDAD_URL = "https://www.cinecalidad.am";
-const CINEHDPLUS_URL = "https://cinehdplus.surf";
 
 // ========================================
 // TIPOS
@@ -71,180 +68,22 @@ export async function buscarEnTMDB(nombre: string) {
 }
 
 // ========================================
-// 2. BUSCAR EN CINECALIDAD (con cheerio)
+// 2. GENERAR LINK DE VIDLINK DESDE TMDB_ID
 // ========================================
-export async function buscarEnCinecalidad(titulo: string): Promise<string | null> {
-  try {
-    const res = await fetch(`${CINECALIDAD_URL}/?s=${encodeURIComponent(titulo)}`, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
-      },
-    });
-    if (!res.ok) return null;
-    const html = await res.text();
-    const $ = cheerio.load(html);
-
-    const selectores = [
-      "article a[href*='/pelicula/']",
-      ".post a[href*='/pelicula/']",
-      ".item a[href*='/pelicula/']",
-      "h2 a",
-      "h3 a",
-      "article a",
-      ".post a",
-    ];
-
-    for (const sel of selectores) {
-      const href = $(sel).first().attr("href");
-      if (href && !href.includes("/?s=") && !href.includes("category")) {
-        return href.startsWith("http") ? href : `${CINECALIDAD_URL}${href}`;
-      }
-    }
-
-    return null;
-  } catch (error) {
-    console.error("Error buscando en Cinecalidad:", error);
-    return null;
-  }
+export function generarLinkVidLink(tmdb_id: number): string {
+  return `https://vidlink.pro/movie/${tmdb_id}`;
 }
 
 // ========================================
-// 3. BUSCAR EN CINEHDPLUS (con cheerio)
-// ========================================
-export async function buscarEnCineHDPlus(titulo: string): Promise<string | null> {
-  try {
-    const res = await fetch(`${CINEHDPLUS_URL}/?s=${encodeURIComponent(titulo)}`, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
-      },
-    });
-    if (!res.ok) return null;
-    const html = await res.text();
-    const $ = cheerio.load(html);
-
-    const selectores = [
-      "article a[href*='/pelicula/']",
-      ".post a[href*='/pelicula/']",
-      ".item a[href*='/pelicula/']",
-      "h2 a",
-      "h3 a",
-      "article a",
-      ".post a",
-    ];
-
-    for (const sel of selectores) {
-      const href = $(sel).first().attr("href");
-      if (href && !href.includes("/?s=") && !href.includes("category")) {
-        return href.startsWith("http") ? href : `${CINEHDPLUS_URL}${href}`;
-      }
-    }
-
-    return null;
-  } catch (error) {
-    console.error("Error buscando en CineHDPlus:", error);
-    return null;
-  }
-}
-
-// ========================================
-// 4. EXTRAER IFRAME DEL HOST DE VIDEO
-// ========================================
-export async function extraerIframeDoodstream(urlPagina: string): Promise<string | null> {
-  try {
-    const res = await fetch(urlPagina, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        Referer: CINECALIDAD_URL,
-      },
-    });
-    if (!res.ok) return null;
-    const html = await res.text();
-
-    // Buscar iframes con hosts conocidos primero
-    const doodMatch = html.match(/<iframe[^>]*src=["']([^"']*(?:dood|voe|vimeos|goodstream|hlswish|videoapp|dr0pstream)[^"']*)["'][^>]*>/i);
-    if (doodMatch) return doodMatch[1];
-
-    const embedMatch = html.match(/<iframe[^>]*src=["']([^"']*embed[^"']*)["'][^>]*>/i);
-    if (embedMatch) return embedMatch[1];
-
-    // Cualquier iframe como último recurso
-    const anyMatch = html.match(/<iframe[^>]*src=["']([^"']*)["'][^>]*>/i);
-    return anyMatch ? anyMatch[1] : null;
-  } catch (error) {
-    console.error("Error extrayendo iframe:", error);
-    return null;
-  }
-}
-
-// ========================================
-// 5. EXTRAER LINK DIRECTO (llamando a /api/extract)
-// ========================================
-export async function extraerLinkDoodstream(
-  doodstreamUrl: string,
-  baseUrl: string
-): Promise<{ link_directo: string; headers: Record<string, string> } | null> {
-  try {
-    const res = await fetch(`${baseUrl}/api/extract`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: doodstreamUrl }),
-    });
-
-    if (!res.ok) return null;
-
-    const data = await res.json();
-    if (!data.link_directo) return null;
-
-    return {
-      link_directo: data.link_directo,
-      headers: data.headers || {},
-    };
-  } catch (error) {
-    console.error("Error extrayendo link de DoodStream:", error);
-    return null;
-  }
-}
-
-// ========================================
-// 6. FUNCIÓN PRINCIPAL: BUSCAR PELÍCULA COMPLETA
+// 3. FUNCIÓN PRINCIPAL: BUSCAR PELÍCULA COMPLETA
 // ========================================
 export async function buscarPeliculaCompleta(nombre: string): Promise<PeliculaScraped | null> {
   try {
     const movie = await buscarEnTMDB(nombre);
     if (!movie) return null;
 
-    // Buscar en ambas fuentes en paralelo
-    const [linkCinecalidad, linkCineHD] = await Promise.all([
-      buscarEnCinecalidad(movie.title),
-      buscarEnCineHDPlus(movie.title),
-    ]);
-
-    const linkPagina = linkCinecalidad || linkCineHD;
-
-    let linkDirecto = "";
-    let headers: Record<string, string> = {};
-
-    // Si encontramos página, extraemos el iframe del host
-    if (linkPagina) {
-      const iframeUrl = await extraerIframeDoodstream(linkPagina);
-      if (iframeUrl) {
-        // Guardamos la URL del iframe (NO el .m3u8).
-        // El reproductor llamará a /api/extract cuando el usuario le dé play.
-        linkDirecto = iframeUrl;
-        headers = {
-          Referer: linkPagina,
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        };
-      }
-    }
+    // VidLink acepta tmdb_id directo → siempre genera link válido
+    const linkDirecto = generarLinkVidLink(movie.id);
 
     return {
       titulo: movie.title,
@@ -255,7 +94,7 @@ export async function buscarPeliculaCompleta(nombre: string): Promise<PeliculaSc
         ? `https://image.tmdb.org/t/p/original${movie.poster_path}`
         : "",
       link_directo: linkDirecto,
-      headers,
+      headers: {},
       fuente: "auto",
     };
   } catch (error) {
@@ -265,7 +104,7 @@ export async function buscarPeliculaCompleta(nombre: string): Promise<PeliculaSc
 }
 
 // ========================================
-// 7. OBTENER PELÍCULAS DE TMDB POR AÑO
+// 4. OBTENER PELÍCULAS DE TMDB POR AÑO
 // ========================================
 export async function obtenerPeliculasPorAnio(
   anio: number,

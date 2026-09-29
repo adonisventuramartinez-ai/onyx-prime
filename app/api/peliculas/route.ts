@@ -25,7 +25,7 @@ export async function GET() {
 }
 
 // ========================================
-// POST — Agrega película (auto-extrae link si falta)
+// POST — Agrega película (auto-genera link VidLink si falta)
 // ========================================
 export async function POST(req: NextRequest) {
   try {
@@ -46,22 +46,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "El título es obligatorio" }, { status: 400 });
     }
 
-    // 🔥 AUTO-GENERACIÓN DEL LINK si no viene
+    // Si no viene link pero hay tmdb_id → generamos VidLink automático
     let linkFinal = link_directo || "";
 
     if (!linkFinal && tmdb_id) {
-      try {
-        const { buscarPeliculaCompleta } = await import("@/lib/scraper");
-        const scrapeResult = await Promise.race([
-          buscarPeliculaCompleta(titulo),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 15000)),
-        ]);
-        if (scrapeResult?.link_directo) {
-          linkFinal = scrapeResult.link_directo;
-        }
-      } catch (err) {
-        console.warn("[peliculas POST] No se pudo extraer link:", err);
-        // No rompemos el guardado
+      const tmdbNum = parseInt(tmdb_id);
+      if (!isNaN(tmdbNum)) {
+        linkFinal = `https://vidlink.pro/movie/${tmdbNum}`;
       }
     }
 

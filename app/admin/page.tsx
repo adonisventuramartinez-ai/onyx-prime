@@ -191,6 +191,18 @@ export default function AdminPage() {
             🤖 Buscar automatico
           </Link>
           <Link
+            href="/agregar-serie"
+            className="bg-indigo-600 hover:bg-indigo-700 transition-colors px-4 py-2 rounded font-semibold text-sm"
+          >
+            📺 Agregar serie
+          </Link>
+          <Link
+            href="/admin/series"
+            className="bg-indigo-800 hover:bg-indigo-900 transition-colors px-4 py-2 rounded font-semibold text-sm"
+          >
+            🎬 Gestionar series
+          </Link>
+          <Link
             href="/admin/limpiador"
             className="bg-yellow-600 hover:bg-yellow-700 transition-colors px-4 py-2 rounded font-semibold text-sm"
           >

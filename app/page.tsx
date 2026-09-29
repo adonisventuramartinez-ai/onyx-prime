@@ -23,7 +23,6 @@ type Pelicula = {
   creado_en: string;
 };
 
-const CATEGORIAS = ["Inicio", "Películas", "Series", "Mi lista"];
 const GENEROS_POPULARES = ["Acción", "Comedia", "Drama", "Terror", "Ciencia Ficción", "Romance", "Animación"];
 const POR_PAGINA = 20;
 
@@ -47,7 +46,6 @@ export default function HomePage() {
   const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const debouncedBusqueda = useDebounce(busqueda, 300);
-  const [categoriaActiva, setCategoriaActiva] = useState("Inicio");
   const [navScrolled, setNavScrolled] = useState(false);
   const [favoritoIds, setFavoritoIds] = useState<Set<string>>(new Set());
   const [continuarViendo, setContinuarViendo] = useState<Pelicula[]>([]);
@@ -60,6 +58,7 @@ export default function HomePage() {
   const [filtroGenero, setFiltroGenero] = useState<string>("todos");
   const [pagina, setPagina] = useState(1);
   const [errorFavoritos, setErrorFavoritos] = useState<string | null>(null);
+  const [mostrarTodo, setMostrarTodo] = useState(false);
 
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -131,9 +130,7 @@ export default function HomePage() {
             .filter(Boolean);
           if (mounted) setContinuarViendo(items);
         }
-      } catch (error) {
-        // Silencioso: "continuar viendo" es una mejora opcional, no crítica
-      }
+      } catch (error) {}
     };
 
     cargarDatos();
@@ -221,12 +218,6 @@ export default function HomePage() {
       );
     }
 
-    if (categoriaActiva === "Mi lista") {
-      lista = lista.filter((p) => favoritoIds.has(p.id));
-    } else if (categoriaActiva === "Series") {
-      lista = lista.filter((p) => p.genero?.toLowerCase().includes("serie"));
-    }
-
     if (filtroGenero !== "todos") {
       lista = lista.filter((p) => p.genero === filtroGenero);
     }
@@ -244,17 +235,21 @@ export default function HomePage() {
     }
 
     return lista;
-  }, [peliculas, debouncedBusqueda, categoriaActiva, favoritoIds, filtroGenero, ordenarPor]);
+  }, [peliculas, debouncedBusqueda, filtroGenero, ordenarPor]);
 
   const totalPaginas = Math.ceil(filtradas.length / POR_PAGINA);
   const paginaActual = Math.min(pagina, totalPaginas || 1);
-  const peliculasPagina = filtradas.slice((paginaActual - 1) * POR_PAGINA, paginaActual * POR_PAGINA);
+  const peliculasPagina = mostrarTodo
+    ? filtradas
+    : filtradas.slice((paginaActual - 1) * POR_PAGINA, paginaActual * POR_PAGINA);
 
   if (errorCarga) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-center p-4 bg-nf-dark text-nf-cream">
         <div className="max-w-md">
-          <p className="font-display text-xl font-semibold text-nf-red mb-2">No pudimos cargar el catálogo</p>
+          <p className="font-display text-xl font-semibold text-nf-red mb-2">
+            No pudimos cargar el catálogo
+          </p>
           <p className="text-nf-gray-light mb-6">{errorCarga}</p>
           <button
             onClick={reiniciarCarga}
@@ -274,26 +269,29 @@ export default function HomePage() {
       {/* ======================================== */}
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          navScrolled ? "bg-nf-dark/95 backdrop-blur-md border-b border-white/10" : "bg-gradient-to-b from-black/70 to-transparent"
+          navScrolled
+            ? "bg-nf-dark/95 backdrop-blur-md border-b border-white/10"
+            : "bg-gradient-to-b from-black/70 to-transparent"
         }`}
       >
         <div className="flex items-center justify-between px-4 md:px-10 py-4 gap-4">
           <div className="flex items-center gap-8">
-            <span className="font-display text-2xl md:text-[28px] tracking-tight text-nf-cream select-none">
+            <Link href="/" className="font-display text-2xl md:text-[28px] tracking-tight text-nf-cream select-none">
               Onyx<span className="text-nf-red not-italic">.</span>
-            </span>
+            </Link>
             <nav className="hidden md:flex gap-6 text-sm">
-              {CATEGORIAS.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => { setCategoriaActiva(cat); setPagina(1); }}
-                  className={`transition-colors hover:text-nf-cream uppercase text-[13px] tracking-wide font-extrabold ${
-                    categoriaActiva === cat ? "text-white" : "text-nf-gray"
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
+              <Link
+                href="/"
+                className="transition-colors hover:text-nf-cream uppercase text-[13px] tracking-wide font-extrabold text-white"
+              >
+                Inicio
+              </Link>
+              <Link
+                href="/series"
+                className="transition-colors hover:text-nf-cream uppercase text-[13px] tracking-wide font-extrabold text-nf-gray"
+              >
+                Series
+              </Link>
             </nav>
           </div>
 
@@ -370,9 +368,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* ======================================== */}
-      {/* HERO — marquesina, no gradiente genérico */}
-      {/* ======================================== */}
+      {/* HERO */}
       {destacada && (
         <section className="relative pt-28 md:pt-36 pb-10 md:pb-14 px-4 md:px-10 overflow-hidden">
           <div className="absolute inset-0 -z-10">
@@ -440,7 +436,7 @@ export default function HomePage() {
         </section>
       )}
 
-      {continuarViendo.length > 0 && categoriaActiva === "Inicio" && !busqueda && (
+      {continuarViendo.length > 0 && !busqueda && (
         <section className="max-w-6xl mx-auto px-4 md:px-10 pb-4 pt-2">
           <h2 className="font-display text-xl md:text-2xl text-nf-cream mb-4 flex items-center gap-2">
             <Clock className="w-5 h-5 text-nf-red" /> Continuar viendo
@@ -457,72 +453,83 @@ export default function HomePage() {
 
       <div className="sprocket-rule text-nf-gray max-w-6xl mx-auto mb-8" />
 
-      {/* ======================================== */}
       {/* CATÁLOGO */}
-      {/* ======================================== */}
       <section className="max-w-6xl mx-auto px-4 md:px-10 pb-12">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <h2 className="font-display text-xl md:text-2xl text-nf-cream">
-            {busqueda ? `Resultados para "${busqueda}"` : "Catálogo"}
+            {busqueda ? `Resultados para "${busqueda}"` : "Catálogo de películas"}
             <span className="text-sm text-nf-gray ml-2 font-sans not-italic">
               ({filtradas.length})
             </span>
           </h2>
 
-          <div className="relative">
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setFiltrosAbiertos((v) => !v)}
-              className="flex items-center gap-2 border border-white/15 hover:border-white/30 px-3 py-1.5 rounded text-sm text-nf-gray-light transition-colors"
+              onClick={() => setMostrarTodo((v) => !v)}
+              className={`text-xs px-3 py-1.5 rounded border transition-colors ${
+                mostrarTodo
+                  ? "border-nf-red bg-nf-red/10 text-nf-red"
+                  : "border-white/15 hover:border-white/30 text-nf-gray-light"
+              }`}
             >
-              <SlidersHorizontal className="w-3.5 h-3.5" /> Filtros
+              {mostrarTodo ? "Paginado" : "Ver todo"}
             </button>
-            {filtrosAbiertos && (
-              <div className="absolute right-0 mt-2 w-64 bg-nf-surface border border-white/10 rounded shadow-2xl p-4 z-40 space-y-4">
-                <div>
-                  <p className="text-xs text-nf-gray mb-1.5">Género</p>
-                  <select
-                    value={filtroGenero}
-                    onChange={(e) => { setFiltroGenero(e.target.value); setPagina(1); }}
-                    className="w-full bg-black/40 border border-white/15 rounded px-3 py-1.5 text-sm text-nf-cream focus:outline-none focus:border-nf-red"
-                  >
-                    <option value="todos">Todos</option>
-                    {GENEROS_POPULARES.map((g) => <option key={g} value={g}>{g}</option>)}
-                    {generos.filter((g) => !GENEROS_POPULARES.includes(g)).map((g) => (
-                      <option key={g} value={g}>{g}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <p className="text-xs text-nf-gray mb-1.5">Ordenar por</p>
-                  <select
-                    value={ordenarPor}
-                    onChange={(e) => { setOrdenarPor(e.target.value as OrdenPor); setPagina(1); }}
-                    className="w-full bg-black/40 border border-white/15 rounded px-3 py-1.5 text-sm text-nf-cream focus:outline-none focus:border-nf-red"
-                  >
-                    <option value="reciente">Más reciente</option>
-                    <option value="titulo">Título (A-Z)</option>
-                    <option value="anio">Año (nuevo-viejo)</option>
-                  </select>
-                </div>
-                <div>
-                  <p className="text-xs text-nf-gray mb-1.5">Vista</p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setVistaGrid("grid")}
-                      className={`flex-1 text-sm py-1.5 rounded transition-colors ${vistaGrid === "grid" ? "bg-nf-red text-white font-semibold" : "bg-black/40 text-nf-gray-light"}`}
+
+            <div className="relative">
+              <button
+                onClick={() => setFiltrosAbiertos((v) => !v)}
+                className="flex items-center gap-2 border border-white/15 hover:border-white/30 px-3 py-1.5 rounded text-sm text-nf-gray-light transition-colors"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" /> Filtros
+              </button>
+              {filtrosAbiertos && (
+                <div className="absolute right-0 mt-2 w-64 bg-nf-surface border border-white/10 rounded shadow-2xl p-4 z-40 space-y-4">
+                  <div>
+                    <p className="text-xs text-nf-gray mb-1.5">Género</p>
+                    <select
+                      value={filtroGenero}
+                      onChange={(e) => { setFiltroGenero(e.target.value); setPagina(1); }}
+                      className="w-full bg-black/40 border border-white/15 rounded px-3 py-1.5 text-sm text-nf-cream focus:outline-none focus:border-nf-red"
                     >
-                      Cuadrícula
-                    </button>
-                    <button
-                      onClick={() => setVistaGrid("lista")}
-                      className={`flex-1 text-sm py-1.5 rounded transition-colors ${vistaGrid === "lista" ? "bg-nf-red text-white font-semibold" : "bg-black/40 text-nf-gray-light"}`}
+                      <option value="todos">Todos</option>
+                      {GENEROS_POPULARES.map((g) => <option key={g} value={g}>{g}</option>)}
+                      {generos.filter((g) => !GENEROS_POPULARES.includes(g)).map((g) => (
+                        <option key={g} value={g}>{g}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <p className="text-xs text-nf-gray mb-1.5">Ordenar por</p>
+                    <select
+                      value={ordenarPor}
+                      onChange={(e) => { setOrdenarPor(e.target.value as OrdenPor); setPagina(1); }}
+                      className="w-full bg-black/40 border border-white/15 rounded px-3 py-1.5 text-sm text-nf-cream focus:outline-none focus:border-nf-red"
                     >
-                      Lista
-                    </button>
+                      <option value="reciente">Más reciente</option>
+                      <option value="titulo">Título (A-Z)</option>
+                      <option value="anio">Año (nuevo-viejo)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <p className="text-xs text-nf-gray mb-1.5">Vista</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setVistaGrid("grid")}
+                        className={`flex-1 text-sm py-1.5 rounded transition-colors ${vistaGrid === "grid" ? "bg-nf-red text-white font-semibold" : "bg-black/40 text-nf-gray-light"}`}
+                      >
+                        Cuadrícula
+                      </button>
+                      <button
+                        onClick={() => setVistaGrid("lista")}
+                        className={`flex-1 text-sm py-1.5 rounded transition-colors ${vistaGrid === "lista" ? "bg-nf-red text-white font-semibold" : "bg-black/40 text-nf-gray-light"}`}
+                      >
+                        Lista
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
 
@@ -540,15 +547,9 @@ export default function HomePage() {
           </div>
         ) : filtradas.length === 0 ? (
           <div className="text-center py-20 text-nf-gray">
-            {categoriaActiva === "Mi lista" ? (
-              <>
-                <Heart className="w-14 h-14 mx-auto mb-4 opacity-20" />
-                <p className="text-lg text-nf-gray-light">Aún no agregaste nada a tu lista</p>
-                <p className="text-sm mt-1">Toca el + en cualquier película para guardarla aquí</p>
-              </>
-            ) : (
-              <p className="text-lg text-nf-gray-light">No hay resultados para &quot;{busqueda}&quot;</p>
-            )}
+            <p className="text-lg text-nf-gray-light">
+              No hay resultados para &quot;{busqueda}&quot;
+            </p>
           </div>
         ) : (
           <>
@@ -575,7 +576,7 @@ export default function HomePage() {
               </div>
             )}
 
-            {totalPaginas > 1 && (
+            {totalPaginas > 1 && !mostrarTodo && (
               <div className="flex justify-center items-center gap-3 mt-10">
                 <button
                   onClick={() => setPagina((p) => Math.max(1, p - 1))}
@@ -600,22 +601,22 @@ export default function HomePage() {
         )}
       </section>
 
+      {/* NAV MÓVIL */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-nf-dark/95 border-t border-white/10 flex justify-around py-2.5 z-40 backdrop-blur-md">
-        {CATEGORIAS.map((item) => (
-          <button
-            key={item}
-            onClick={() => { setCategoriaActiva(item); setPagina(1); }}
-            className={`text-xs flex flex-col items-center gap-1 px-2 transition-colors ${
-              categoriaActiva === item ? "text-nf-red" : "text-nf-gray"
-            }`}
-          >
-            {item === "Inicio" && <Film className="w-5 h-5" />}
-            {item === "Películas" && <Film className="w-5 h-5" />}
-            {item === "Series" && <Film className="w-5 h-5" />}
-            {item === "Mi lista" && <Heart className="w-5 h-5" />}
-            <span>{item}</span>
-          </button>
-        ))}
+        <Link
+          href="/"
+          className="text-xs flex flex-col items-center gap-1 px-2 text-nf-red"
+        >
+          <Film className="w-5 h-5" />
+          <span>Inicio</span>
+        </Link>
+        <Link
+          href="/series"
+          className="text-xs flex flex-col items-center gap-1 px-2 text-nf-gray"
+        >
+          <Film className="w-5 h-5" />
+          <span>Series</span>
+        </Link>
       </nav>
     </main>
   );

@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/db";
+import { buscarPeliculaCompleta } from "@/lib/scraper";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY || "67fff863bf6ae181cd30a3519662ea70";
 
-// Mapa oficial de géneros de películas de TMDB (id -> nombre en español).
-// TMDB solo devuelve "genre_ids" (números) en /search/movie, no los nombres,
-// así que hay que traducirlos nosotros mismos con esta tabla fija.
 const GENEROS_TMDB: Record<number, string> = {
   28: "Acción",
   12: "Aventura",
@@ -32,12 +31,13 @@ const GENEROS_TMDB: Record<number, string> = {
 
 function obtenerGenero(genre_ids?: number[]): string {
   if (!genre_ids || genre_ids.length === 0) return "Desconocido";
-  const nombres = genre_ids
-    .map((id) => GENEROS_TMDB[id])
-    .filter(Boolean);
+  const nombres = genre_ids.map((id) => GENEROS_TMDB[id]).filter(Boolean);
   return nombres.length > 0 ? nombres.join(", ") : "Desconocido";
 }
 
+// ========================================
+// GET — busca en TMDB + intenta extraer el link
+// ========================================
 export async function GET(req: NextRequest) {
   const nombre = req.nextUrl.searchParams.get("nombre");
 
@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Buscar en TMDB
+    // 1. TMDB primero (rápido, siempre funciona)
     const res = await fetch(
       `https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(nombre)}&language=es-ES`
     );
@@ -63,6 +63,22 @@ export async function GET(req: NextRequest) {
 
     const movie = data.results[0];
 
+    // 2. Intentamos extraer el link con timeout de seguridad (15s)
+    let link_directo = "";
+    try {
+      const scrapeResult = await Promise.race([
+        buscarPeliculaCompleta(movie.title),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 15000)),
+      ]);
+
+      if (scrapeResult?.link_directo) {
+        link_directo = scrapeResult.link_directo;
+      }
+    } catch (err) {
+      console.warn("[buscar-pelicula] Extracción de link falló:", err);
+      // No rompemos la búsqueda. El usuario verá la peli igual.
+    }
+
     const pelicula = {
       tmdb_id: movie.id,
       titulo: movie.title,
@@ -72,7 +88,7 @@ export async function GET(req: NextRequest) {
       caratula: movie.poster_path
         ? `https://image.tmdb.org/t/p/original${movie.poster_path}`
         : "",
-      link_directo: "",
+      link_directo,
       fuente: "auto",
     };
 
@@ -83,6 +99,9 @@ export async function GET(req: NextRequest) {
   }
 }
 
+// ========================================
+// POST — busca + guarda directo (fallback)
+// ========================================
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -108,6 +127,17 @@ export async function POST(req: NextRequest) {
 
     const movie = data.results[0];
 
+    let link_directo = "";
+    try {
+      const scrapeResult = await Promise.race([
+        buscarPeliculaCompleta(movie.title),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 15000)),
+      ]);
+      if (scrapeResult?.link_directo) link_directo = scrapeResult.link_directo;
+    } catch (err) {
+      console.warn("[buscar-pelicula POST] Extracción falló:", err);
+    }
+
     const { data: insertada, error } = await supabaseAdmin
       .from("peliculas")
       .insert({
@@ -119,7 +149,7 @@ export async function POST(req: NextRequest) {
         caratula: movie.poster_path
           ? `https://image.tmdb.org/t/p/original${movie.poster_path}`
           : "",
-        link_directo: "",
+        link_directo,
         fuente: "auto",
         creado_en: new Date().toISOString(),
       })

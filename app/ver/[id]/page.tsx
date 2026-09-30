@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { CARATULA_FALLBACK } from "@/lib/db";
+import VideoPlayer from "@/components/VideoPlayer";
 
 interface Pelicula {
   id: string;
@@ -43,15 +44,15 @@ export default function VerPeliculaPage() {
   }, [id]);
 
   const iniciarReproduccion = async () => {
-    if (!pelicula?.link_directo) {
-      setError("Esta película no tiene un link configurado.");
+    if (!pelicula?.tmdb_id) {
+      setError("Esta película no tiene TMDB ID. Agrégala con el buscador automático.");
       return;
     }
 
     setError("");
     setReproduciendo(true);
 
-    // 🔥 Guardar en historial (silencioso, no bloquea)
+    // Guardar en historial (silencioso)
     try {
       await fetch("/api/historial", {
         method: "POST",
@@ -113,13 +114,10 @@ export default function VerPeliculaPage() {
           </div>
         ) : (
           <div className="w-full h-screen">
-            <iframe
-              src={pelicula?.link_directo}
-              className="w-full h-full"
-              allowFullScreen
-              allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-              frameBorder={0}
-              title={pelicula?.titulo}
+            <VideoPlayer
+              tmdbId={pelicula!.tmdb_id!}
+              tipo="movie"
+              poster={pelicula?.caratula}
             />
           </div>
         )}

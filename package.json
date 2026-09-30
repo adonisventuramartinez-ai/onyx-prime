@@ -15,7 +15,10 @@
     "next": "14.2.5",
     "react": "^18",
     "react-dom": "^18",
-    "cheerio": "^1.0.0"
+    "cheerio": "^1.0.0",
+    "@definisi/vidsrc-scraper": "^2.0.0",
+"aetherly-stream-proxy": "^1.0.0",
+"hls.js": "^1.5.13"
   },
   "devDependencies": {
     "eslint": "^8",

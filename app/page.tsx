@@ -23,6 +23,19 @@ type Pelicula = {
   creado_en: string;
 };
 
+type ContinuarItem = {
+  tipo: "pelicula" | "serie";
+  id: string;
+  titulo: string;
+  caratula: string;
+  anio: number | string;
+  genero: string;
+  visto_en: string;
+  temporada: number | null;
+  numero: number | null;
+  num_temporadas: number | null;
+};
+
 const GENEROS_POPULARES = ["Acción", "Comedia", "Drama", "Terror", "Ciencia Ficción", "Romance", "Animación"];
 const POR_PAGINA = 20;
 
@@ -48,7 +61,7 @@ export default function HomePage() {
   const debouncedBusqueda = useDebounce(busqueda, 300);
   const [navScrolled, setNavScrolled] = useState(false);
   const [favoritoIds, setFavoritoIds] = useState<Set<string>>(new Set());
-  const [continuarViendo, setContinuarViendo] = useState<Pelicula[]>([]);
+  const [continuarViendo, setContinuarViendo] = useState<ContinuarItem[]>([]);
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
   const [esAdmin, setEsAdmin] = useState(false);
@@ -58,7 +71,6 @@ export default function HomePage() {
   const [filtroGenero, setFiltroGenero] = useState<string>("todos");
   const [pagina, setPagina] = useState(1);
   const [errorFavoritos, setErrorFavoritos] = useState<string | null>(null);
-  const [mostrarTodo, setMostrarTodo] = useState(false);
 
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -125,10 +137,7 @@ export default function HomePage() {
         const histRes = await fetch("/api/historial");
         if (histRes.ok) {
           const data = await histRes.json();
-          const items: Pelicula[] = (Array.isArray(data) ? data : [])
-            .map((h: any) => (Array.isArray(h.peliculas) ? h.peliculas[0] : h.peliculas))
-            .filter(Boolean);
-          if (mounted) setContinuarViendo(items);
+          if (mounted) setContinuarViendo(Array.isArray(data) ? data : []);
         }
       } catch (error) {}
     };
@@ -239,9 +248,7 @@ export default function HomePage() {
 
   const totalPaginas = Math.ceil(filtradas.length / POR_PAGINA);
   const paginaActual = Math.min(pagina, totalPaginas || 1);
-  const peliculasPagina = mostrarTodo
-    ? filtradas
-    : filtradas.slice((paginaActual - 1) * POR_PAGINA, paginaActual * POR_PAGINA);
+  const peliculasPagina = filtradas.slice((paginaActual - 1) * POR_PAGINA, paginaActual * POR_PAGINA);
 
   if (errorCarga) {
     return (
@@ -265,7 +272,7 @@ export default function HomePage() {
   return (
     <main className="min-h-screen text-nf-cream pb-16 bg-nf-dark">
       {/* ======================================== */}
-      {/* NAV */}
+      {/* NAV — MENÚ ACTUALIZADO: Inicio | Películas | Series */}
       {/* ======================================== */}
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -285,6 +292,12 @@ export default function HomePage() {
                 className="transition-colors hover:text-nf-cream uppercase text-[13px] tracking-wide font-extrabold text-white"
               >
                 Inicio
+              </Link>
+              <Link
+                href="/peliculas"
+                className="transition-colors hover:text-nf-cream uppercase text-[13px] tracking-wide font-extrabold text-nf-gray"
+              >
+                Películas
               </Link>
               <Link
                 href="/series"
@@ -436,16 +449,15 @@ export default function HomePage() {
         </section>
       )}
 
+      {/* CONTINUAR VIENDO (pelis + series) */}
       {continuarViendo.length > 0 && !busqueda && (
         <section className="max-w-6xl mx-auto px-4 md:px-10 pb-4 pt-2">
           <h2 className="font-display text-xl md:text-2xl text-nf-cream mb-4 flex items-center gap-2">
             <Clock className="w-5 h-5 text-nf-red" /> Continuar viendo
           </h2>
           <div className="flex gap-4 overflow-x-auto row-scroll pb-2 -mx-1 px-1">
-            {continuarViendo.map((p) => (
-              <div key={p.id} className="flex-shrink-0 w-32 sm:w-36 md:w-40">
-                <TarjetaPelicula pelicula={p} enLista={favoritoIds.has(p.id)} onToggle={toggleFavorito} />
-              </div>
+            {continuarViendo.map((item) => (
+              <ContinuarCard key={`${item.tipo}-${item.id}`} item={item} />
             ))}
           </div>
         </section>
@@ -463,73 +475,60 @@ export default function HomePage() {
             </span>
           </h2>
 
-          <div className="flex items-center gap-2">
+          <div className="relative">
             <button
-              onClick={() => setMostrarTodo((v) => !v)}
-              className={`text-xs px-3 py-1.5 rounded border transition-colors ${
-                mostrarTodo
-                  ? "border-nf-red bg-nf-red/10 text-nf-red"
-                  : "border-white/15 hover:border-white/30 text-nf-gray-light"
-              }`}
+              onClick={() => setFiltrosAbiertos((v) => !v)}
+              className="flex items-center gap-2 border border-white/15 hover:border-white/30 px-3 py-1.5 rounded text-sm text-nf-gray-light transition-colors"
             >
-              {mostrarTodo ? "Paginado" : "Ver todo"}
+              <SlidersHorizontal className="w-3.5 h-3.5" /> Filtros
             </button>
-
-            <div className="relative">
-              <button
-                onClick={() => setFiltrosAbiertos((v) => !v)}
-                className="flex items-center gap-2 border border-white/15 hover:border-white/30 px-3 py-1.5 rounded text-sm text-nf-gray-light transition-colors"
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5" /> Filtros
-              </button>
-              {filtrosAbiertos && (
-                <div className="absolute right-0 mt-2 w-64 bg-nf-surface border border-white/10 rounded shadow-2xl p-4 z-40 space-y-4">
-                  <div>
-                    <p className="text-xs text-nf-gray mb-1.5">Género</p>
-                    <select
-                      value={filtroGenero}
-                      onChange={(e) => { setFiltroGenero(e.target.value); setPagina(1); }}
-                      className="w-full bg-black/40 border border-white/15 rounded px-3 py-1.5 text-sm text-nf-cream focus:outline-none focus:border-nf-red"
+            {filtrosAbiertos && (
+              <div className="absolute right-0 mt-2 w-64 bg-nf-surface border border-white/10 rounded shadow-2xl p-4 z-40 space-y-4">
+                <div>
+                  <p className="text-xs text-nf-gray mb-1.5">Género</p>
+                  <select
+                    value={filtroGenero}
+                    onChange={(e) => { setFiltroGenero(e.target.value); setPagina(1); }}
+                    className="w-full bg-black/40 border border-white/15 rounded px-3 py-1.5 text-sm text-nf-cream focus:outline-none focus:border-nf-red"
+                  >
+                    <option value="todos">Todos</option>
+                    {GENEROS_POPULARES.map((g) => <option key={g} value={g}>{g}</option>)}
+                    {generos.filter((g) => !GENEROS_POPULARES.includes(g)).map((g) => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <p className="text-xs text-nf-gray mb-1.5">Ordenar por</p>
+                  <select
+                    value={ordenarPor}
+                    onChange={(e) => { setOrdenarPor(e.target.value as OrdenPor); setPagina(1); }}
+                    className="w-full bg-black/40 border border-white/15 rounded px-3 py-1.5 text-sm text-nf-cream focus:outline-none focus:border-nf-red"
+                  >
+                    <option value="reciente">Más reciente</option>
+                    <option value="titulo">Título (A-Z)</option>
+                    <option value="anio">Año (nuevo-viejo)</option>
+                  </select>
+                </div>
+                <div>
+                  <p className="text-xs text-nf-gray mb-1.5">Vista</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setVistaGrid("grid")}
+                      className={`flex-1 text-sm py-1.5 rounded transition-colors ${vistaGrid === "grid" ? "bg-nf-red text-white font-semibold" : "bg-black/40 text-nf-gray-light"}`}
                     >
-                      <option value="todos">Todos</option>
-                      {GENEROS_POPULARES.map((g) => <option key={g} value={g}>{g}</option>)}
-                      {generos.filter((g) => !GENEROS_POPULARES.includes(g)).map((g) => (
-                        <option key={g} value={g}>{g}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <p className="text-xs text-nf-gray mb-1.5">Ordenar por</p>
-                    <select
-                      value={ordenarPor}
-                      onChange={(e) => { setOrdenarPor(e.target.value as OrdenPor); setPagina(1); }}
-                      className="w-full bg-black/40 border border-white/15 rounded px-3 py-1.5 text-sm text-nf-cream focus:outline-none focus:border-nf-red"
+                      Cuadrícula
+                    </button>
+                    <button
+                      onClick={() => setVistaGrid("lista")}
+                      className={`flex-1 text-sm py-1.5 rounded transition-colors ${vistaGrid === "lista" ? "bg-nf-red text-white font-semibold" : "bg-black/40 text-nf-gray-light"}`}
                     >
-                      <option value="reciente">Más reciente</option>
-                      <option value="titulo">Título (A-Z)</option>
-                      <option value="anio">Año (nuevo-viejo)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <p className="text-xs text-nf-gray mb-1.5">Vista</p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setVistaGrid("grid")}
-                        className={`flex-1 text-sm py-1.5 rounded transition-colors ${vistaGrid === "grid" ? "bg-nf-red text-white font-semibold" : "bg-black/40 text-nf-gray-light"}`}
-                      >
-                        Cuadrícula
-                      </button>
-                      <button
-                        onClick={() => setVistaGrid("lista")}
-                        className={`flex-1 text-sm py-1.5 rounded transition-colors ${vistaGrid === "lista" ? "bg-nf-red text-white font-semibold" : "bg-black/40 text-nf-gray-light"}`}
-                      >
-                        Lista
-                      </button>
-                    </div>
+                      Lista
+                    </button>
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -576,7 +575,7 @@ export default function HomePage() {
               </div>
             )}
 
-            {totalPaginas > 1 && !mostrarTodo && (
+            {totalPaginas > 1 && (
               <div className="flex justify-center items-center gap-3 mt-10">
                 <button
                   onClick={() => setPagina((p) => Math.max(1, p - 1))}
@@ -611,6 +610,13 @@ export default function HomePage() {
           <span>Inicio</span>
         </Link>
         <Link
+          href="/peliculas"
+          className="text-xs flex flex-col items-center gap-1 px-2 text-nf-gray"
+        >
+          <Film className="w-5 h-5" />
+          <span>Películas</span>
+        </Link>
+        <Link
           href="/series"
           className="text-xs flex flex-col items-center gap-1 px-2 text-nf-gray"
         >
@@ -619,6 +625,49 @@ export default function HomePage() {
         </Link>
       </nav>
     </main>
+  );
+}
+
+function ContinuarCard({ item }: { item: ContinuarItem }) {
+  const href = item.tipo === "pelicula"
+    ? `/ver/${item.id}`
+    : `/ver-serie/${item.id}/${item.temporada}/${item.numero}`;
+
+  return (
+    <Link
+      href={href}
+      className="group flex-shrink-0 w-32 sm:w-36 md:w-40"
+    >
+      <div className="relative aspect-[2/3] rounded overflow-hidden bg-nf-surface border border-white/5 transition-all duration-300 group-hover:border-nf-red">
+        <img
+          src={item.caratula || CARATULA_FALLBACK}
+          alt={item.titulo}
+          className="w-full h-full object-cover"
+          onError={(e) => { (e.target as HTMLImageElement).src = CARATULA_FALLBACK; }}
+        />
+        {item.tipo === "serie" && (
+          <span className="absolute top-2 left-2 bg-indigo-600 text-white text-[10px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded z-10">
+            Serie
+          </span>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent flex flex-col justify-end p-3">
+          <span className="text-white text-xs font-extrabold uppercase tracking-wide flex items-center gap-1.5">
+            <Play className="w-3 h-3 fill-white" />
+            {item.tipo === "serie" ? "Continuar" : "Ver de nuevo"}
+          </span>
+        </div>
+      </div>
+      <h4 className="mt-2 text-sm font-bold truncate text-white">
+        {item.titulo}
+      </h4>
+      {item.tipo === "serie" && item.temporada && item.numero ? (
+        <p className="text-xs text-indigo-400 font-semibold">
+          T{item.temporada} · E{item.numero}
+        </p>
+      ) : (
+        <p className="text-xs text-nf-gray truncate">{item.genero}</p>
+      )}
+    </Link>
   );
 }
 

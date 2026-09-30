@@ -42,13 +42,25 @@ export default function VerPeliculaPage() {
       });
   }, [id]);
 
-  const iniciarReproduccion = () => {
+  const iniciarReproduccion = async () => {
     if (!pelicula?.link_directo) {
       setError("Esta película no tiene un link configurado.");
       return;
     }
+
     setError("");
     setReproduciendo(true);
+
+    // 🔥 Guardar en historial (silencioso, no bloquea)
+    try {
+      await fetch("/api/historial", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pelicula_id: pelicula.id }),
+      });
+    } catch (err) {
+      console.warn("[ver] No se pudo guardar en historial:", err);
+    }
   };
 
   if (cargando) {
@@ -100,13 +112,16 @@ export default function VerPeliculaPage() {
             </div>
           </div>
         ) : (
-          <iframe
-            src={pelicula?.link_directo}
-            className="w-full h-screen"
-            allowFullScreen
-            allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-            frameBorder={0}
-          />
+          <div className="w-full h-screen">
+            <iframe
+              src={pelicula?.link_directo}
+              className="w-full h-full"
+              allowFullScreen
+              allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+              frameBorder={0}
+              title={pelicula?.titulo}
+            />
+          </div>
         )}
       </div>
 

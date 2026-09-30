@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ChevronLeft, ChevronRight, List, X } from "lucide-react";
+import VideoPlayer from "@/components/VideoPlayer";
 
 const EPISODIO_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='225' viewBox='0 0 400 225'%3E%3Crect width='400' height='225' fill='%23181818'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='14' fill='%23555' text-anchor='middle' dominant-baseline='middle'%3ESIN IMAGEN%3C/text%3E%3C/svg%3E";
 
@@ -24,6 +25,7 @@ type Episodio = {
 
 type Serie = {
   id: string;
+  tmdb_id: number | null;
   titulo: string;
   titulo_original: string;
   anio: number | string;
@@ -109,21 +111,22 @@ export default function VerSeriePage() {
   };
 
   const iniciarReproduccion = async () => {
-    if (!episodioActual?.link_directo) {
-      setError("Este episodio no tiene un link configurado.");
+    if (!serie?.tmdb_id) {
+      setError("Esta serie no tiene TMDB ID. Agrégala con el buscador automático.");
       return;
     }
+    if (!episodioActual) return;
 
     setError("");
     setReproduciendo(true);
 
-    // 🔥 Guardar en historial (silencioso)
+    // Guardar en historial (silencioso)
     try {
       await fetch("/api/historial", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          serie_id: serie?.id,
+          serie_id: serie.id,
           temporada: episodioActual.temporada,
           numero: episodioActual.numero,
         }),
@@ -221,13 +224,12 @@ export default function VerSeriePage() {
           </div>
         ) : (
           <div className="w-full aspect-video max-h-screen">
-            <iframe
-              src={episodioActual.link_directo}
-              className="w-full h-full"
-              allowFullScreen
-              allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-              frameBorder={0}
-              title={episodioActual.titulo}
+            <VideoPlayer
+              tmdbId={serie.tmdb_id!}
+              tipo="tv"
+              temporada={episodioActual.temporada}
+              episodio={episodioActual.numero}
+              poster={episodioActual.caratula || serie.backdrop}
             />
           </div>
         )}

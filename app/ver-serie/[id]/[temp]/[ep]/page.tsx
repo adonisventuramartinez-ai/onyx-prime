@@ -68,7 +68,6 @@ export default function VerSeriePage() {
       });
   }, [id]);
 
-  // Resetear reproducción al cambiar de episodio
   useEffect(() => {
     setReproduciendo(false);
     setListaAbierta(false);
@@ -109,10 +108,35 @@ export default function VerSeriePage() {
     router.push(`/ver-serie/${serie?.id}/${ep.temporada}/${ep.numero}`);
   };
 
+  const iniciarReproduccion = async () => {
+    if (!episodioActual?.link_directo) {
+      setError("Este episodio no tiene un link configurado.");
+      return;
+    }
+
+    setError("");
+    setReproduciendo(true);
+
+    // 🔥 Guardar en historial (silencioso)
+    try {
+      await fetch("/api/historial", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          serie_id: serie?.id,
+          temporada: episodioActual.temporada,
+          numero: episodioActual.numero,
+        }),
+      });
+    } catch (err) {
+      console.warn("[ver-serie] No se pudo guardar en historial:", err);
+    }
+  };
+
   if (cargando) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-nf-red border-t-transparent rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-[#E50914] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -120,12 +144,12 @@ export default function VerSeriePage() {
   if (error || !serie || !episodioActual) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center text-center p-4">
-        <p className="text-nf-red text-xl font-semibold mb-4">
+        <p className="text-[#E50914] text-xl font-semibold mb-4">
           {error || "Episodio no encontrado"}
         </p>
         <Link
           href={serie ? `/serie/${serie.id}` : "/series"}
-          className="text-nf-cream hover:text-nf-red transition-colors text-sm"
+          className="text-white hover:text-[#E50914] transition-colors text-sm"
         >
           ← Volver a la serie
         </Link>
@@ -135,25 +159,23 @@ export default function VerSeriePage() {
 
   return (
     <main className="min-h-screen bg-black flex flex-col">
-      {/* ======================================== */}
       {/* Barra superior */}
-      {/* ======================================== */}
       <div className="flex items-center justify-between px-4 py-3 bg-black/80 backdrop-blur-sm border-b border-white/5 z-30">
         <button
           onClick={() => router.push(`/serie/${serie.id}`)}
-          className="flex items-center gap-2 text-nf-cream hover:text-nf-red transition-colors text-sm"
+          className="flex items-center gap-2 text-white hover:text-[#E50914] transition-colors text-sm"
         >
           <ArrowLeft className="w-4 h-4" />
           <span className="hidden sm:inline">{serie.titulo}</span>
         </button>
 
         <div className="flex items-center gap-3">
-          <span className="text-xs text-nf-gray">
+          <span className="text-xs text-gray-400">
             T{episodioActual.temporada} · E{episodioActual.numero}
           </span>
           <button
             onClick={() => setListaAbierta((v) => !v)}
-            className="flex items-center gap-1.5 text-nf-cream hover:text-nf-red transition-colors text-sm border border-white/15 hover:border-nf-red/50 px-3 py-1.5 rounded"
+            className="flex items-center gap-1.5 text-white hover:text-[#E50914] transition-colors text-sm border border-white/15 hover:border-[#E50914]/50 px-3 py-1.5 rounded"
           >
             <List className="w-4 h-4" />
             <span className="hidden sm:inline">Episodios</span>
@@ -161,9 +183,7 @@ export default function VerSeriePage() {
         </div>
       </div>
 
-      {/* ======================================== */}
       {/* Reproductor */}
-      {/* ======================================== */}
       <div className="relative w-full flex-1 bg-black flex items-center justify-center min-h-[50vh]">
         {!reproduciendo ? (
           <div className="relative w-full h-full flex items-center justify-center">
@@ -176,8 +196,8 @@ export default function VerSeriePage() {
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/60" />
 
             <button
-              onClick={() => setReproduciendo(true)}
-              className="absolute inset-0 m-auto w-20 h-20 md:w-24 md:h-24 bg-nf-red hover:bg-nf-red-hover rounded-full flex items-center justify-center transition-all hover:scale-110 z-20"
+              onClick={iniciarReproduccion}
+              className="absolute inset-0 m-auto w-20 h-20 md:w-24 md:h-24 bg-[#E50914] hover:bg-[#b20710] rounded-full flex items-center justify-center transition-all hover:scale-110 z-20"
               aria-label="Reproducir"
             >
               <svg width="36" height="36" viewBox="0 0 24 24" fill="white">
@@ -186,7 +206,7 @@ export default function VerSeriePage() {
             </button>
 
             <div className="absolute bottom-8 md:bottom-12 left-0 right-0 text-center z-10 px-4">
-              <p className="text-nf-red text-xs font-extrabold uppercase tracking-[0.2em] mb-2">
+              <p className="text-[#E50914] text-xs font-extrabold uppercase tracking-[0.2em] mb-2">
                 T{episodioActual.temporada} · E{episodioActual.numero}
               </p>
               <h1 className="text-2xl md:text-4xl font-black text-white mb-2">
@@ -213,17 +233,15 @@ export default function VerSeriePage() {
         )}
       </div>
 
-      {/* ======================================== */}
       {/* Info + Navegación */}
-      {/* ======================================== */}
-      <div className="bg-nf-dark border-t border-white/5 px-4 md:px-10 py-5">
+      <div className="bg-[#0a0a0a] border-t border-white/5 px-4 md:px-10 py-5">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
             <div className="flex-1">
-              <h2 className="font-display text-xl md:text-2xl text-white mb-1">
+              <h2 className="text-xl md:text-2xl font-bold text-white mb-1">
                 {episodioActual.titulo}
               </h2>
-              <p className="text-nf-gray-light text-sm line-clamp-2">
+              <p className="text-gray-400 text-sm line-clamp-2">
                 {episodioActual.sinopsis}
               </p>
             </div>
@@ -232,14 +250,14 @@ export default function VerSeriePage() {
               <button
                 onClick={() => anterior && irA(anterior)}
                 disabled={!anterior}
-                className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed text-nf-cream px-4 py-2 rounded text-sm transition-colors"
+                className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed text-white px-4 py-2 rounded text-sm transition-colors"
               >
                 <ChevronLeft className="w-4 h-4" /> Anterior
               </button>
               <button
                 onClick={() => siguiente && irA(siguiente)}
                 disabled={!siguiente}
-                className="flex items-center gap-1.5 bg-nf-red hover:bg-nf-red-hover disabled:opacity-30 disabled:cursor-not-allowed text-white px-4 py-2 rounded text-sm transition-colors"
+                className="flex items-center gap-1.5 bg-[#E50914] hover:bg-[#b20710] disabled:opacity-30 disabled:cursor-not-allowed text-white px-4 py-2 rounded text-sm transition-colors"
               >
                 Siguiente <ChevronRight className="w-4 h-4" />
               </button>
@@ -248,21 +266,19 @@ export default function VerSeriePage() {
         </div>
       </div>
 
-      {/* ======================================== */}
       {/* Panel lateral de episodios */}
-      {/* ======================================== */}
       {listaAbierta && (
         <>
           <div
             className="fixed inset-0 bg-black/70 z-40"
             onClick={() => setListaAbierta(false)}
           />
-          <aside className="fixed top-0 right-0 bottom-0 w-full sm:w-96 bg-nf-dark border-l border-white/10 z-50 flex flex-col animate-in slide-in-from-right">
+          <aside className="fixed top-0 right-0 bottom-0 w-full sm:w-96 bg-[#0a0a0a] border-l border-white/10 z-50 flex flex-col">
             <div className="flex items-center justify-between px-4 py-4 border-b border-white/10">
-              <h3 className="font-display text-lg text-white">Episodios</h3>
+              <h3 className="text-lg font-bold text-white">Episodios</h3>
               <button
                 onClick={() => setListaAbierta(false)}
-                className="text-nf-gray hover:text-white transition-colors"
+                className="text-gray-400 hover:text-white transition-colors"
                 aria-label="Cerrar"
               >
                 <X className="w-5 h-5" />
@@ -275,7 +291,7 @@ export default function VerSeriePage() {
                 return (
                   <div key={temp} className="border-b border-white/5">
                     <div className="px-4 py-3 bg-black/30 sticky top-0 z-10">
-                      <p className="text-xs text-nf-gray uppercase tracking-wide font-bold">
+                      <p className="text-xs text-gray-400 uppercase tracking-wide font-bold">
                         Temporada {temp}
                       </p>
                     </div>
@@ -288,13 +304,13 @@ export default function VerSeriePage() {
                           onClick={() => irA(ep)}
                           className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors ${
                             activo
-                              ? "bg-nf-red/20 border-l-4 border-nf-red"
+                              ? "bg-[#E50914]/20 border-l-4 border-[#E50914]"
                               : "hover:bg-white/5 border-l-4 border-transparent"
                           }`}
                         >
                           <span
                             className={`flex-shrink-0 w-8 h-8 rounded flex items-center justify-center text-xs font-bold ${
-                              activo ? "bg-nf-red text-white" : "bg-white/10 text-nf-gray"
+                              activo ? "bg-[#E50914] text-white" : "bg-white/10 text-gray-400"
                             }`}
                           >
                             {ep.numero}
@@ -302,13 +318,13 @@ export default function VerSeriePage() {
                           <div className="min-w-0 flex-1">
                             <p
                               className={`text-sm font-medium truncate ${
-                                activo ? "text-white" : "text-nf-cream"
+                                activo ? "text-white" : "text-gray-200"
                               }`}
                             >
                               {ep.titulo}
                             </p>
                             {ep.duracion && (
-                              <p className="text-xs text-nf-gray">
+                              <p className="text-xs text-gray-500">
                                 {ep.duracion} min
                               </p>
                             )}

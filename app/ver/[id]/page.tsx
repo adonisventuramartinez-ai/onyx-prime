@@ -5,7 +5,6 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { CARATULA_FALLBACK } from "@/lib/db";
-import VideoPlayer from "@/components/VideoPlayer";
 
 interface Pelicula {
   id: string;
@@ -44,11 +43,6 @@ export default function VerPeliculaPage() {
   }, [id]);
 
   const iniciarReproduccion = async () => {
-    if (!pelicula?.tmdb_id) {
-      setError("Esta película no tiene TMDB ID. Agrégala con el buscador automático.");
-      return;
-    }
-
     setError("");
     setReproduciendo(true);
 
@@ -57,12 +51,17 @@ export default function VerPeliculaPage() {
       await fetch("/api/historial", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pelicula_id: pelicula.id }),
+        body: JSON.stringify({ pelicula_id: id }),
       });
     } catch (err) {
       console.warn("[ver] No se pudo guardar en historial:", err);
     }
   };
+
+  // URL del embed de VidLink
+  const embedUrl = pelicula?.tmdb_id
+    ? `https://vidlink.pro/movie/${pelicula.tmdb_id}`
+    : pelicula?.link_directo;
 
   if (cargando) {
     return (
@@ -114,11 +113,23 @@ export default function VerPeliculaPage() {
           </div>
         ) : (
           <div className="w-full h-screen">
-            <VideoPlayer
-              tmdbId={pelicula!.tmdb_id!}
-              tipo="movie"
-              poster={pelicula?.caratula}
-            />
+            {embedUrl ? (
+              <iframe
+                src={embedUrl}
+                className="w-full h-full"
+                allowFullScreen
+                allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                frameBorder={0}
+                title={pelicula?.titulo}
+                referrerPolicy="origin"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-center p-8">
+                <p className="text-gray-400">
+                  Esta película no tiene TMDB ID. Agrégala con el buscador automático.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
